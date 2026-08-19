@@ -20,15 +20,15 @@ export const LoginScreen = ({ onLogin }) => {
     <div className="bg-[#ffffff] min-h-screen flex items-center justify-center p-4 font-sans text-[#121c2a]">
       <main className="w-full max-w-md bg-white rounded-xl border border-[#bcc9c6]/40 shadow-sm overflow-hidden">
         {/* Header Section */}
-        <div className="px-8 pt-10 pb-6 text-center border-b border-[#eff4ff]">
-          <div className="inline-flex items-center justify-center p-3 rounded-xl mb-4">
+        <div className="px-8 pt-8 pb-5 text-center border-b border-[#eff4ff]">
+          <div className="flex flex-col items-center justify-center">
             <img 
               src="/assets/logo-full.svg" 
               alt="AdaptVR Platform" 
-              className="h-10 object-contain" 
+              className="h-11 object-contain" 
             />
+            <p className="text-xs font-semibold text-[#3d4947] mt-2">Teacher Educator Portal</p>
           </div>
-         
         </div>
 
         {/* Form Section */}

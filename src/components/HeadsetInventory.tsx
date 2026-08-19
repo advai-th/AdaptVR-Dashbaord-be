@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 
-export const HeadsetInventory = ({ onAssignDevice }) => {
+interface HeadsetInventoryProps {
+  onAssignDevice: (device: any) => void;
+}
+
+export const HeadsetInventory: React.FC<HeadsetInventoryProps> = ({ onAssignDevice }) => {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('All');
 
@@ -173,7 +177,7 @@ export const HeadsetInventory = ({ onAssignDevice }) => {
               <button
                 disabled={h.status !== 'Available'}
                 onClick={() => onAssignDevice(h)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                   h.status === 'Available'
                     ? 'text-[#00685f] hover:bg-[#008378]/10'
                     : 'text-[#bcc9c6] cursor-not-allowed'

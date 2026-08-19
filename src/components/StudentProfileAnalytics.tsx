@@ -1,6 +1,13 @@
 import React from 'react';
+import { Student } from '../types';
 
-export const StudentProfileAnalytics = ({ student, onBack, onStartSession }) => {
+interface StudentProfileAnalyticsProps {
+  student?: Student | null;
+  onBack: () => void;
+  onStartSession?: () => void;
+}
+
+export const StudentProfileAnalytics: React.FC<StudentProfileAnalyticsProps> = ({ student, onBack, onStartSession }) => {
   const studentName = student?.name || 'Alex Chen';
   const grade = student?.grade || '10';
 
@@ -10,18 +17,20 @@ export const StudentProfileAnalytics = ({ student, onBack, onStartSession }) => 
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-xs font-semibold text-[#00685f] hover:underline"
+          className="flex items-center gap-2 text-xs font-semibold text-[#00685f] hover:underline cursor-pointer"
         >
           <span className="material-symbols-outlined text-[18px]">arrow_back</span>
           Back to Students Directory
         </button>
-        <button
-          onClick={onStartSession}
-          className="h-9 px-4 bg-[#00685f] hover:bg-[#008378] text-white text-xs font-semibold rounded-lg flex items-center gap-2 transition-colors shadow-sm"
-        >
-          <span className="material-symbols-outlined text-[16px]">add</span>
-          Start Session with {studentName.split(' ')[0]}
-        </button>
+        {onStartSession && (
+          <button
+            onClick={onStartSession}
+            className="h-9 px-4 bg-[#00685f] hover:bg-[#008378] text-white text-xs font-semibold rounded-lg flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[16px]">add</span>
+            Start Session with {studentName.split(' ')[0]}
+          </button>
+        )}
       </div>
 
       {/* Student Header & Summary Stats */}
@@ -48,18 +57,18 @@ export const StudentProfileAnalytics = ({ student, onBack, onStartSession }) => 
           <div className="bg-[#F9FAFB] border border-[#bcc9c6]/40 rounded-lg p-3 flex-1 md:w-36 flex flex-col">
             <span className="text-[10px] font-semibold text-[#3d4947] uppercase tracking-wider mb-1">Total Sessions</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-[#00685f]">14</span>
+              <span className="text-2xl font-bold text-[#00685f]">{student?.sessions || 14}</span>
               <span className="text-xs text-[#10B981] font-semibold flex items-center">+2</span>
             </div>
           </div>
           <div className="bg-[#F9FAFB] border border-[#bcc9c6]/40 rounded-lg p-3 flex-1 md:w-40 flex flex-col">
             <span className="text-[10px] font-semibold text-[#3d4947] uppercase tracking-wider mb-1">Avg Mastery</span>
             <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-bold text-[#00685f]">92%</span>
+              <span className="text-2xl font-bold text-[#00685f]">{student?.avgScore || 92}%</span>
               <span className="text-[10px] text-[#3d4947]">Top 15%</span>
             </div>
             <div className="w-full bg-[#d9e3f6] h-1.5 rounded-full mt-2 overflow-hidden">
-              <div className="bg-[#00685f] h-full rounded-full w-[92%]"></div>
+              <div className="bg-[#00685f] h-full rounded-full" style={{ width: `${student?.avgScore || 92}%` }}></div>
             </div>
           </div>
         </div>
@@ -72,7 +81,7 @@ export const StudentProfileAnalytics = ({ student, onBack, onStartSession }) => 
           <div className="flex justify-between items-center mb-5">
             <h3 className="text-base font-bold text-[#121c2a]">Concept Mastery</h3>
             <div className="bg-[#eff4ff] border border-[#bcc9c6]/40 px-3 py-1 rounded-md text-xs text-[#3d4947] flex items-center gap-1 cursor-pointer">
-              Solar System <span class="material-symbols-outlined text-[16px]">expand_more</span>
+              Solar System <span className="material-symbols-outlined text-[16px]">expand_more</span>
             </div>
           </div>
           <div className="space-y-4">
@@ -157,50 +166,6 @@ export const StudentProfileAnalytics = ({ student, onBack, onStartSession }) => 
         </div>
       </div>
 
-      {/* Learner State History Timeline */}
-      <div className="bg-white border border-[#bcc9c6]/40 rounded-xl p-5 shadow-sm">
-        <h3 className="text-base font-bold text-[#121c2a] mb-5">Learner-State History</h3>
-        <div className="flex justify-between items-center relative overflow-x-auto pb-2">
-          <div className="flex flex-col items-center min-w-[100px]">
-            <div className="w-8 h-8 rounded-full border-2 border-[#F59E0B] text-[#F59E0B] flex items-center justify-center mb-1">
-              <span className="material-symbols-outlined text-[16px]">pan_tool</span>
-            </div>
-            <span className="text-xs font-semibold text-[#121c2a]">Needs Support</span>
-            <span className="text-[10px] text-[#3d4947]">10:05 AM</span>
-          </div>
-
-          <div className="flex-1 h-0.5 bg-[#bcc9c6]/40 mx-2"></div>
-
-          <div className="flex flex-col items-center min-w-[100px]">
-            <div className="w-8 h-8 rounded-full border-2 border-[#0061a5] text-[#0061a5] flex items-center justify-center mb-1">
-              <span className="material-symbols-outlined text-[16px]">trending_up</span>
-            </div>
-            <span className="text-xs font-semibold text-[#121c2a]">Progressing</span>
-            <span className="text-[10px] text-[#3d4947]">10:18 AM</span>
-          </div>
-
-          <div className="flex-1 h-0.5 bg-[#bcc9c6]/40 mx-2"></div>
-
-          <div className="flex flex-col items-center min-w-[100px]">
-            <div className="w-8 h-8 rounded-full bg-[#00685f] text-white flex items-center justify-center mb-1">
-              <span className="material-symbols-outlined text-[16px]">check_circle</span>
-            </div>
-            <span className="text-xs font-bold text-[#00685f]">Mastered</span>
-            <span className="text-[10px] text-[#3d4947]">10:32 AM</span>
-          </div>
-
-          <div className="flex-1 h-0.5 bg-[#bcc9c6]/40 mx-2"></div>
-
-          <div className="flex flex-col items-center min-w-[100px] opacity-50">
-            <div className="w-8 h-8 rounded-full border-2 border-dashed border-[#bcc9c6] text-[#3d4947] flex items-center justify-center mb-1">
-              <span className="material-symbols-outlined text-[16px]">flag</span>
-            </div>
-            <span className="text-xs text-[#3d4947]">Challenge</span>
-            <span className="text-[10px] text-[#3d4947]">Next</span>
-          </div>
-        </div>
-      </div>
-
       {/* Recent Sessions Table */}
       <div className="bg-white border border-[#bcc9c6]/40 rounded-xl overflow-hidden shadow-sm">
         <div className="px-5 py-4 border-b border-[#bcc9c6]/40 bg-[#F9FAFB]">
@@ -223,28 +188,6 @@ export const StudentProfileAnalytics = ({ student, onBack, onStartSession }) => 
               <td className="py-3 px-4 text-[#3d4947]">45 min</td>
               <td className="py-3 px-4">
                 <span className="px-2 py-0.5 rounded bg-[#10B981]/10 text-[#10B981] font-semibold">92%</span>
-              </td>
-              <td className="py-3 px-4 text-right">
-                <button className="text-[#0061a5] font-semibold hover:underline">View Replay</button>
-              </td>
-            </tr>
-            <tr>
-              <td className="py-3 px-4">Oct 22, 2023</td>
-              <td className="py-3 px-4 font-semibold">Cell Structure Basics</td>
-              <td className="py-3 px-4 text-[#3d4947]">30 min</td>
-              <td className="py-3 px-4">
-                <span className="px-2 py-0.5 rounded bg-[#10B981]/10 text-[#10B981] font-semibold">88%</span>
-              </td>
-              <td className="py-3 px-4 text-right">
-                <button className="text-[#0061a5] font-semibold hover:underline">View Replay</button>
-              </td>
-            </tr>
-            <tr>
-              <td className="py-3 px-4">Oct 18, 2023</td>
-              <td className="py-3 px-4 font-semibold">Gravity Intro</td>
-              <td className="py-3 px-4 text-[#3d4947]">25 min</td>
-              <td className="py-3 px-4">
-                <span className="px-2 py-0.5 rounded bg-[#F59E0B]/10 text-[#F59E0B] font-semibold">75%</span>
               </td>
               <td className="py-3 px-4 text-right">
                 <button className="text-[#0061a5] font-semibold hover:underline">View Replay</button>

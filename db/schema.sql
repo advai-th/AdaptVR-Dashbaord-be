@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS TEACHER (
 
 CREATE INDEX IF NOT EXISTS idx_teacher_email ON TEACHER(email);
 
+DROP TRIGGER IF EXISTS update_teacher_updated_at ON TEACHER;
 CREATE TRIGGER update_teacher_updated_at
 BEFORE UPDATE ON TEACHER
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -52,6 +53,7 @@ CREATE TABLE IF NOT EXISTS STUDENT (
 CREATE INDEX IF NOT EXISTS idx_student_teacher_id ON STUDENT(teacher_id);
 CREATE INDEX IF NOT EXISTS idx_student_full_name ON STUDENT(full_name);
 
+DROP TRIGGER IF EXISTS update_student_updated_at ON STUDENT;
 CREATE TRIGGER update_student_updated_at
 BEFORE UPDATE ON STUDENT
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -74,6 +76,7 @@ CREATE TABLE IF NOT EXISTS LEARNING_MODULE (
 CREATE INDEX IF NOT EXISTS idx_learning_module_category ON LEARNING_MODULE(category);
 CREATE INDEX IF NOT EXISTS idx_learning_module_status ON LEARNING_MODULE(status);
 
+DROP TRIGGER IF EXISTS update_learning_module_updated_at ON LEARNING_MODULE;
 CREATE TRIGGER update_learning_module_updated_at
 BEFORE UPDATE ON LEARNING_MODULE
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
@@ -118,6 +121,7 @@ CREATE INDEX IF NOT EXISTS idx_session_module_id ON SESSION(module_id);
 CREATE INDEX IF NOT EXISTS idx_session_completion_status ON SESSION(completion_status);
 CREATE INDEX IF NOT EXISTS idx_session_start_time ON SESSION(start_time);
 
+DROP TRIGGER IF EXISTS update_session_updated_at ON SESSION;
 CREATE TRIGGER update_session_updated_at
 BEFORE UPDATE ON SESSION
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

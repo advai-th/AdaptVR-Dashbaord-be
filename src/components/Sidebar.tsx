@@ -1,6 +1,12 @@
 import React from 'react';
 
-export const Sidebar = ({ activeTab, setActiveTab }) => {
+interface SidebarProps {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+  onStartSession?: () => void;
+}
+
+export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
     { id: 'students', label: 'Students', icon: 'group' },
@@ -13,9 +19,9 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
 
   return (
     <nav className="hidden md:flex flex-col h-full py-2 gap-2 bg-[#F9FAFB] dark:bg-[#27313f] fixed left-0 top-0 w-[280px] border-r border-[#bcc9c6] dark:border-slate-700 z-30 select-none">
-      {/* Header / Brand with User's Full SVG Logo on a clean badge container */}
+      {/* Header / Brand */}
       <div className="px-4 py-3 border-b border-[#bcc9c6] dark:border-slate-700 mb-2 h-16 flex items-center">
-        <div className="bg-white px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-600 shadow-sm flex items-center justify-center w-full h-[44px]">
+        <div className=" px-3 py-1.5 rounded-xl  flex items-center justify-center w-full h-[44px]">
           <img
             src="/assets/logo-full.svg"
             alt="AdaptVR Trainer Platform"
@@ -38,10 +44,7 @@ export const Sidebar = ({ activeTab, setActiveTab }) => {
                   : 'text-[#3d4947] dark:text-slate-200 hover:bg-[#dee9fc] dark:hover:bg-slate-700/60'
               }`}
             >
-              <span
-                className="material-symbols-outlined text-[20px]"
-                data-icon={item.icon}
-              >
+              <span className="material-symbols-outlined text-[20px]">
                 {item.icon}
               </span>
               <span>{item.label}</span>

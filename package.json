@@ -5,6 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "node server/index.js",
+    "dev:all": "concurrently \"npm run server\" \"npm run dev\"",
+    "start": "node server/index.js",
+    "db:init": "node db/init.js",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -25,7 +29,9 @@
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^10.0.5",
     "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
     "vite": "^6.1.0"
   }
 }

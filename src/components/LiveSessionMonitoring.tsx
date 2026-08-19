@@ -1,17 +1,33 @@
 import React, { useState } from 'react';
 
-export const LiveSessionMonitoring = ({ session, onBack, onEndSession }) => {
+interface LiveSessionMonitoringProps {
+  session?: any;
+  onBack: () => void;
+  onEndSession?: () => void;
+}
+
+export const LiveSessionMonitoring: React.FC<LiveSessionMonitoringProps> = ({
+  session,
+  onBack,
+  onEndSession,
+}) => {
   const [message, setMessage] = useState('Great work, Alex!');
-  const [sentMessages, setSentMessages] = useState([]);
+  const [sentMessages, setSentMessages] = useState<Array<{ text: string; time: string }>>([]);
   const [isPaused, setIsPaused] = useState(false);
 
-  const studentName = session?.student || 'Alex Chen';
-  const headsetId = session?.id || 'Quest-04';
-  const moduleName = session?.module || 'Adaptive Solar System Lab';
+  const studentName = session?.student || session?.studentName || 'Alex Chen';
+  const headsetId = session?.id || session?.deviceId || 'Quest-04';
+  const moduleName = session?.module || session?.moduleName || 'Adaptive Solar System Lab';
 
   const handleSendMessage = () => {
     if (message.trim()) {
-      setSentMessages([...sentMessages, { text: message, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) }]);
+      setSentMessages([
+        ...sentMessages,
+        {
+          text: message,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        },
+      ]);
       setMessage('');
     }
   };
@@ -22,7 +38,7 @@ export const LiveSessionMonitoring = ({ session, onBack, onEndSession }) => {
       <div className="flex items-center justify-between">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-sm font-semibold text-[#00685f] hover:underline"
+          className="flex items-center gap-2 text-sm font-semibold text-[#00685f] hover:underline cursor-pointer"
         >
           <span className="material-symbols-outlined text-[20px]">arrow_back</span>
           Back to Live Sessions List
@@ -77,14 +93,14 @@ export const LiveSessionMonitoring = ({ session, onBack, onEndSession }) => {
             <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={() => setIsPaused(!isPaused)}
-                className="h-10 border border-[#bcc9c6] rounded-lg flex items-center justify-center gap-2 text-[#3d4947] hover:bg-[#eff4ff] transition-colors text-xs font-semibold"
+                className="h-10 border border-[#bcc9c6] rounded-lg flex items-center justify-center gap-2 text-[#3d4947] hover:bg-[#eff4ff] transition-colors text-xs font-semibold cursor-pointer"
               >
                 <span className="material-symbols-outlined text-[18px]">
                   {isPaused ? 'play_arrow' : 'pause'}
                 </span>
                 {isPaused ? 'Resume' : 'Pause'}
               </button>
-              <button className="h-10 border border-[#bcc9c6] rounded-lg flex items-center justify-center gap-2 text-[#3d4947] hover:bg-[#eff4ff] transition-colors text-xs font-semibold">
+              <button className="h-10 border border-[#bcc9c6] rounded-lg flex items-center justify-center gap-2 text-[#3d4947] hover:bg-[#eff4ff] transition-colors text-xs font-semibold cursor-pointer">
                 <span className="material-symbols-outlined text-[18px]">replay</span>
                 Restart Task
               </button>
@@ -92,7 +108,7 @@ export const LiveSessionMonitoring = ({ session, onBack, onEndSession }) => {
 
             <button 
               onClick={onEndSession}
-              className="h-10 w-full border border-[#EF4444] text-[#EF4444] hover:bg-[#ffdad6]/20 rounded-lg transition-colors text-xs font-semibold flex items-center justify-center gap-2"
+              className="h-10 w-full border border-[#EF4444] text-[#EF4444] hover:bg-[#ffdad6]/20 rounded-lg transition-colors text-xs font-semibold flex items-center justify-center gap-2 cursor-pointer"
             >
               <span className="material-symbols-outlined text-[18px]">power_settings_new</span>
               End Session
@@ -112,7 +128,7 @@ export const LiveSessionMonitoring = ({ session, onBack, onEndSession }) => {
                 />
                 <button
                   onClick={handleSendMessage}
-                  className="h-10 px-4 bg-[#00685f] text-white rounded-lg hover:bg-[#008378] transition-colors flex items-center justify-center"
+                  className="h-10 px-4 bg-[#00685f] text-white rounded-lg hover:bg-[#008378] transition-colors flex items-center justify-center cursor-pointer"
                 >
                   <span className="material-symbols-outlined">send</span>
                 </button>

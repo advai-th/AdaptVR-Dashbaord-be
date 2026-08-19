@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { LoginScreen } from './components/LoginScreen';
 import { Sidebar } from './components/Sidebar';
 import { TopNavBar } from './components/TopNavBar';
@@ -9,16 +9,69 @@ import { StudentsDirectory } from './components/StudentsDirectory';
 import { StudentProfileAnalytics } from './components/StudentProfileAnalytics';
 import { LearningModulesLibrary } from './components/LearningModulesLibrary';
 import { HeadsetInventory } from './components/HeadsetInventory';
+import { DashboardOverview } from './components/DashboardOverview';
+import { api } from './services/api';
+import { User, Student } from './types';
 
 export default function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // Default logged in for easy review
-  const [activeTab, setActiveTab] = useState('live'); // 'dashboard', 'students', 'modules', 'headsets', 'live', 'student-detail', 'monitoring'
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>('dashboard'); // 'dashboard', 'students', 'modules', 'headsets', 'live', 'student-detail', 'monitoring'
   const [isStartSessionOpen, setIsStartSessionOpen] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [selectedSession, setSelectedSession] = useState(null);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedSession, setSelectedSession] = useState<any>(null);
+
+  // Verify JWT Token on initial app load
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem('adaptvr_auth_token');
+      if (!token) {
+        setIsLoggedIn(false);
+        setIsAuthChecking(false);
+        return;
+      }
+
+      try {
+        const user = await api.getMe();
+        setCurrentUser(user);
+        setIsLoggedIn(true);
+      } catch (err) {
+        console.warn('Auth session expired or invalid:', err);
+        localStorage.removeItem('adaptvr_auth_token');
+        localStorage.removeItem('adaptvr_user');
+        setIsLoggedIn(false);
+      } finally {
+        setIsAuthChecking(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
+
+  const handleLoginSuccess = (user: User) => {
+    setCurrentUser(user);
+    setIsLoggedIn(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('adaptvr_auth_token');
+    localStorage.removeItem('adaptvr_user');
+    setCurrentUser(null);
+    setIsLoggedIn(false);
+  };
+
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-[#f8f9ff] flex flex-col items-center justify-center font-sans">
+        <div className="w-8 h-8 border-3 border-[#00685f] border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-xs font-semibold text-[#3d4947] mt-3">Connecting to AdaptVR Engine...</p>
+      </div>
+    );
+  }
 
   if (!isLoggedIn) {
-    return <LoginScreen onLogin={() => setIsLoggedIn(true)} />;
+    return <LoginScreen onLogin={handleLoginSuccess} />;
   }
 
   // Handle transactional workflow screen override (Start New Session Stepper Modal)
@@ -37,12 +90,12 @@ export default function App() {
     );
   }
 
-  const handleSelectStudent = (student) => {
+  const handleSelectStudent = (student: Student) => {
     setSelectedStudent(student);
     setActiveTab('student-detail');
   };
 
-  const handleViewMonitoring = (session) => {
+  const handleViewMonitoring = (session: any) => {
     setSelectedSession(session || { id: 's1', studentName: 'Alex Chen', deviceId: 'Quest-02', moduleName: 'Solar System Lab' });
     setActiveTab('monitoring');
   };
@@ -61,13 +114,21 @@ export default function App() {
         {/* Top Header Bar */}
         <TopNavBar
           activeTab={activeTab}
-          onLogout={() => setIsLoggedIn(false)}
+          currentUser={currentUser}
+          onLogout={handleLogout}
           onStartSession={() => setIsStartSessionOpen(true)}
         />
 
         {/* Content Area */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#f8f9ff]">
           <div className="max-w-[1280px] mx-auto">
+            {activeTab === 'dashboard' && (
+              <DashboardOverview
+                onStartNewSession={() => setIsStartSessionOpen(true)}
+                onNavigate={(tab) => setActiveTab(tab)}
+              />
+            )}
+
             {activeTab === 'live' && (
               <LiveSessionsTable
                 onViewMonitoring={handleViewMonitoring}
@@ -102,7 +163,7 @@ export default function App() {
 
             {activeTab === 'modules' && (
               <LearningModulesLibrary
-                onStartModule={(mod) => {
+                onStartModule={() => {
                   setIsStartSessionOpen(true);
                 }}
               />
@@ -110,36 +171,14 @@ export default function App() {
 
             {activeTab === 'headsets' && (
               <HeadsetInventory
-                onAssignDevice={(device) => {
+                onAssignDevice={() => {
                   setIsStartSessionOpen(true);
                 }}
               />
-            )}
-
-            {activeTab === 'dashboard' && (
-              <div className="space-y-6">
-                <div className="bg-white p-6 rounded-xl border border-[#bcc9c6]/40 shadow-sm flex justify-between items-center">
-                  <div>
-                    <h1 className="text-2xl font-bold text-[#121c2a]">Welcome back, Professor Smith</h1>
-                    <p className="text-sm text-[#3d4947] mt-1">Science Department • Northwood Academy</p>
-                  </div>
-                  <button
-                    onClick={() => setIsStartSessionOpen(true)}
-                    className="px-5 py-2.5 bg-[#00685f] text-white rounded-lg text-xs font-semibold hover:bg-[#008378] transition-colors flex items-center gap-2"
-                  >
-                    <span className="material-symbols-outlined text-[18px]">add</span> Start VR Session
-                  </button>
-                </div>
-
-                <LiveSessionsTable
-                  onViewMonitoring={handleViewMonitoring}
-                  onStartSession={() => setIsStartSessionOpen(true)}
-                />
-              </div>
             )}
           </div>
         </main>
       </div>
     </div>
   );
-};
+}

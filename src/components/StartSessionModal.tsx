@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 
-export const StartSessionModal = ({ onClose, onSessionStarted }) => {
+interface StartSessionModalProps {
+  onClose: () => void;
+  onSessionStarted: (sessionData: any) => void;
+}
+
+export const StartSessionModal: React.FC<StartSessionModalProps> = ({ onClose, onSessionStarted }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedStudent, setSelectedStudent] = useState('Alex Chen');
   const [selectedHeadset, setSelectedHeadset] = useState('Quest-01');
@@ -56,7 +61,7 @@ export const StartSessionModal = ({ onClose, onSessionStarted }) => {
           <div className="flex items-center justify-between">
             <button
               onClick={onClose}
-              className="flex items-center gap-1.5 text-[#3d4947] hover:text-[#121c2a] transition-colors"
+              className="flex items-center gap-1.5 text-[#3d4947] hover:text-[#121c2a] transition-colors cursor-pointer"
             >
               <span className="material-symbols-outlined text-[20px]">close</span>
               <span className="text-xs font-semibold">Cancel Session</span>
@@ -217,14 +222,14 @@ export const StartSessionModal = ({ onClose, onSessionStarted }) => {
                     <button
                       type="button"
                       onClick={() => setMode('Guided')}
-                      className={`py-2 px-4 rounded-lg text-xs font-semibold border ${mode === 'Guided' ? 'bg-[#008378] text-white border-[#00685f]' : 'border-[#bcc9c6] text-[#3d4947]'}`}
+                      className={`py-2 px-4 rounded-lg text-xs font-semibold border cursor-pointer ${mode === 'Guided' ? 'bg-[#008378] text-white border-[#00685f]' : 'border-[#bcc9c6] text-[#3d4947]'}`}
                     >
                       Guided Mode
                     </button>
                     <button
                       type="button"
                       onClick={() => setMode('Free Exploration')}
-                      className={`py-2 px-4 rounded-lg text-xs font-semibold border ${mode === 'Free Exploration' ? 'bg-[#008378] text-white border-[#00685f]' : 'border-[#bcc9c6] text-[#3d4947]'}`}
+                      className={`py-2 px-4 rounded-lg text-xs font-semibold border cursor-pointer ${mode === 'Free Exploration' ? 'bg-[#008378] text-white border-[#00685f]' : 'border-[#bcc9c6] text-[#3d4947]'}`}
                     >
                       Free Exploration
                     </button>
@@ -240,7 +245,7 @@ export const StartSessionModal = ({ onClose, onSessionStarted }) => {
                     type="checkbox"
                     checked={preTest}
                     onChange={(e) => setPreTest(e.target.checked)}
-                    className="w-5 h-5 rounded border-[#bcc9c6] text-[#00685f]"
+                    className="w-5 h-5 rounded border-[#bcc9c6] text-[#00685f] cursor-pointer"
                   />
                 </div>
               </div>
@@ -291,13 +296,13 @@ export const StartSessionModal = ({ onClose, onSessionStarted }) => {
         <footer className="bg-white border-t border-[#bcc9c6]/30 px-6 py-4 flex justify-between items-center shrink-0">
           <button
             onClick={handleBack}
-            className="px-5 py-2 rounded-lg border border-[#bcc9c6] text-[#3d4947] text-xs font-semibold hover:bg-[#eff4ff] transition-colors"
+            className="px-5 py-2 rounded-lg border border-[#bcc9c6] text-[#3d4947] text-xs font-semibold hover:bg-[#eff4ff] transition-colors cursor-pointer"
           >
             {currentStep === 1 ? 'Cancel' : 'Back'}
           </button>
           <button
             onClick={handleNext}
-            className="px-6 py-2 rounded-lg bg-[#00685f] hover:bg-[#008378] text-white text-xs font-semibold transition-colors flex items-center gap-2 shadow-sm"
+            className="px-6 py-2 rounded-lg bg-[#00685f] hover:bg-[#008378] text-white text-xs font-semibold transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
           >
             <span>{currentStep === 5 ? 'Confirm and Start' : 'Next Step'}</span>
             <span className="material-symbols-outlined text-[16px]">

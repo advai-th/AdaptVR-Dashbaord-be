@@ -9,15 +9,15 @@ VALUES
     'd8e6a2b8-936e-41bc-b5e1-88f5c9e2b10a',
     'Dr. Evelyn Vance',
     'evelyn.vance@adaptvr.edu',
-    '$2a$10$ADEfSObwG/naPj6sgXMBC.cNgHNUOVDJRwqQSxyAoijqi/70JWbjy'
+    '$2b$10$zlcGgSxq6078N/j1WaXn/eFOTgDN6vHP0.8BDJGkR8GJyEZ45ZHJm'
 ),
 (
     'f1e2d3c4-b5a6-4987-8765-43210fedcba9',
     'Prof. Marcus Brody',
     'marcus.brody@adaptvr.edu',
-    '$2a$10$ADEfSObwG/naPj6sgXMBC.cNgHNUOVDJRwqQSxyAoijqi/70JWbjy'
+    '$2b$10$zlcGgSxq6078N/j1WaXn/eFOTgDN6vHP0.8BDJGkR8GJyEZ45ZHJm'
 )
-ON CONFLICT (email) DO NOTHING;
+ON CONFLICT (email) DO UPDATE SET password_hash = EXCLUDED.password_hash;
 
 -- 2. Insert STUDENTS
 INSERT INTO STUDENT (student_id, teacher_id, full_name, age, grade)

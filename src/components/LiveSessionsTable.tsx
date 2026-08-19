@@ -1,7 +1,21 @@
 import React, { useState } from 'react';
 
-export const LiveSessionsTable = ({ onSelectSession, onStartNewSession }) => {
-  const [filter, setFilter] = useState('all');
+interface LiveSessionsTableProps {
+  onSelectSession?: (session: any) => void;
+  onViewMonitoring?: (session: any) => void;
+  onStartNewSession?: () => void;
+  onStartSession?: () => void;
+}
+
+export const LiveSessionsTable: React.FC<LiveSessionsTableProps> = ({
+  onSelectSession,
+  onViewMonitoring,
+  onStartNewSession,
+  onStartSession,
+}) => {
+  const [filter, setFilter] = useState<'all' | 'active' | 'paused' | 'disconnected'>('all');
+  const handleView = onViewMonitoring || onSelectSession || (() => {});
+  const handleStart = onStartNewSession || onStartSession;
 
   const sessions = [
     {
@@ -102,13 +116,15 @@ export const LiveSessionsTable = ({ onSelectSession, onStartNewSession }) => {
               Paused
             </button>
           </div>
-          <button 
-            onClick={onStartNewSession}
-            className="h-[40px] px-4 bg-[#00685f] hover:bg-[#008378] text-white font-semibold text-sm rounded-lg transition-colors flex items-center gap-2"
-          >
-            <span className="material-symbols-outlined text-[18px]">add</span>
-            <span>Start Session</span>
-          </button>
+          {handleStart && (
+            <button 
+              onClick={handleStart}
+              className="h-[40px] px-4 bg-[#00685f] hover:bg-[#008378] text-white font-semibold text-sm rounded-lg transition-colors flex items-center gap-2 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-[18px]">add</span>
+              <span>Start Session</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -209,7 +225,7 @@ export const LiveSessionsTable = ({ onSelectSession, onStartNewSession }) => {
                   <td className="py-3.5 px-4 text-right">
                     <div className="flex justify-end gap-2">
                       <button
-                        onClick={() => onSelectSession(s)}
+                        onClick={() => handleView(s)}
                         className="p-1.5 rounded text-[#00685f] hover:bg-[#008378]/10 transition-colors"
                         title="View Telemetry Monitoring"
                       >

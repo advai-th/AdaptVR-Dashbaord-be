@@ -1,6 +1,10 @@
 import React, { useState } from 'react';
 
-export const LearningModulesLibrary = ({ onStartModule }) => {
+interface LearningModulesLibraryProps {
+  onStartModule: (module: any) => void;
+}
+
+export const LearningModulesLibrary: React.FC<LearningModulesLibraryProps> = ({ onStartModule }) => {
   const [subjectFilter, setSubjectFilter] = useState('All');
   const [gradeFilter, setGradeFilter] = useState('All');
 
@@ -122,7 +126,7 @@ export const LearningModulesLibrary = ({ onStartModule }) => {
                         <div>
                           <span className="text-[10px] font-semibold text-[#3d4947] uppercase tracking-wider">Adaptations</span>
                           <div className="flex gap-1.5 mt-1">
-                            {m.adaptations.map((a) => (
+                            {m.adaptations?.map((a: string) => (
                               <span key={a} className="bg-white border border-[#bcc9c6]/40 px-2 py-0.5 rounded text-[10px] font-medium text-[#121c2a]">
                                 {a}
                               </span>
@@ -138,12 +142,12 @@ export const LearningModulesLibrary = ({ onStartModule }) => {
                   </div>
 
                   <div className="mt-5 flex justify-end gap-2">
-                    <button className="px-4 py-2 border border-[#bcc9c6] rounded-lg text-xs font-semibold text-[#121c2a] hover:bg-[#eff4ff]">
+                    <button className="px-4 py-2 border border-[#bcc9c6] rounded-lg text-xs font-semibold text-[#121c2a] hover:bg-[#eff4ff] cursor-pointer">
                       Details
                     </button>
                     <button
                       onClick={() => onStartModule(m)}
-                      className="px-4 py-2 bg-[#00685f] hover:bg-[#008378] text-white rounded-lg text-xs font-semibold flex items-center gap-2"
+                      className="px-4 py-2 bg-[#00685f] hover:bg-[#008378] text-white rounded-lg text-xs font-semibold flex items-center gap-2 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-[18px]">play_arrow</span> Launch
                     </button>
@@ -182,7 +186,7 @@ export const LearningModulesLibrary = ({ onStartModule }) => {
                   </span>
                   <button
                     onClick={() => onStartModule(m)}
-                    className="p-1.5 rounded text-[#00685f] hover:bg-[#008378]/10"
+                    className="p-1.5 rounded text-[#00685f] hover:bg-[#008378]/10 cursor-pointer"
                     title="Launch Module"
                   >
                     <span className="material-symbols-outlined text-[20px]">play_circle</span>

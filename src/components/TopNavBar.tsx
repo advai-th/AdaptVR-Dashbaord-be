@@ -1,6 +1,26 @@
 import React from 'react';
+import { User } from '../types';
 
-export const TopNavBar = ({ onStartNewSession, teacherName, onLogout }) => {
+interface TopNavBarProps {
+  activeTab?: string;
+  onStartSession?: () => void;
+  onStartNewSession?: () => void;
+  teacherName?: string;
+  currentUser?: User | null;
+  onLogout?: () => void;
+}
+
+export const TopNavBar: React.FC<TopNavBarProps> = ({
+  onStartSession,
+  onStartNewSession,
+  teacherName,
+  currentUser,
+  onLogout,
+}) => {
+  const displayName = currentUser?.full_name || teacherName || 'Dr. Evelyn Vance';
+  const initial = displayName.charAt(0).toUpperCase();
+  const handleStartSession = onStartNewSession || onStartSession;
+
   return (
     <header className="flex justify-between items-center w-full px-6 h-16 z-40 bg-white dark:bg-[#27313f] border-b border-[#bcc9c6] dark:border-slate-700 shrink-0 sticky top-0">
       {/* Left: Brand (Mobile) / Search */}
@@ -24,13 +44,15 @@ export const TopNavBar = ({ onStartNewSession, teacherName, onLogout }) => {
 
       {/* Right: Actions & Profile */}
       <div className="flex items-center gap-4 shrink-0">
-        <button
-          onClick={onStartNewSession}
-          className="h-[40px] px-4 bg-[#00685f] hover:bg-[#008378] text-white rounded-lg text-sm font-semibold transition-colors shadow-sm hidden lg:flex items-center gap-2"
-        >
-          <span className="material-symbols-outlined text-[18px]">add</span>
-          <span>Start New Session</span>
-        </button>
+        {handleStartSession && (
+          <button
+            onClick={handleStartSession}
+            className="h-[40px] px-4 bg-[#00685f] hover:bg-[#008378] text-white rounded-lg text-sm font-semibold transition-colors shadow-sm hidden lg:flex items-center gap-2 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-[18px]">add</span>
+            <span>Start New Session</span>
+          </button>
+        )}
 
         <div className="h-6 w-px bg-[#bcc9c6] dark:bg-slate-600 mx-1 hidden lg:block"></div>
 
@@ -47,18 +69,18 @@ export const TopNavBar = ({ onStartNewSession, teacherName, onLogout }) => {
         <div className="flex items-center gap-3 ml-2 border-l border-[#bcc9c6] dark:border-slate-600 pl-4">
           <div className="hidden md:flex flex-col items-end">
             <span className="text-sm font-bold text-[#121c2a] dark:text-white leading-tight">
-              {teacherName || 'Dr. E. Vance'}
+              {displayName}
             </span>
-            <span className="text-[11px] font-medium text-[#3d4947] dark:text-slate-300">Class 10-B</span>
+            <span className="text-[11px] font-medium text-[#3d4947] dark:text-slate-300">Educator</span>
           </div>
 
-          <div 
+          <button 
             onClick={onLogout}
             title="Click to Logout"
-            className="w-9 h-9 rounded-full bg-[#008378] text-white flex items-center justify-center font-bold text-sm cursor-pointer border border-[#bcc9c6] dark:border-slate-600 shadow-sm"
+            className="w-9 h-9 rounded-full bg-[#008378] text-white flex items-center justify-center font-bold text-sm hover:opacity-90 transition-opacity border border-[#bcc9c6] dark:border-slate-600 shadow-sm cursor-pointer"
           >
-            {teacherName ? teacherName.charAt(0).toUpperCase() : 'V'}
-          </div>
+            {initial}
+          </button>
         </div>
       </div>
     </header>

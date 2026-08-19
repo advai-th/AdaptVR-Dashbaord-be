@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 
-export const DashboardOverview = ({ onStartNewSession, onNavigate }) => {
+interface DashboardOverviewProps {
+  onStartNewSession: () => void;
+  onNavigate: (tab: string) => void;
+}
+
+export const DashboardOverview: React.FC<DashboardOverviewProps> = ({ onStartNewSession, onNavigate }) => {
   const [showWarning, setShowWarning] = useState(true);
 
   return (
@@ -9,7 +14,7 @@ export const DashboardOverview = ({ onStartNewSession, onNavigate }) => {
       <div className="space-y-4">
         {showWarning && (
           <div className="bg-[#ffdad6]/40 border border-[#ffdad6] rounded-lg p-3.5 flex items-start gap-3">
-            <span className="material-symbols-outlined text-[#ba1a1a] mt-0.5" data-weight="fill">
+            <span className="material-symbols-outlined text-[#ba1a1a] mt-0.5">
               warning
             </span>
             <div className="flex-1">
@@ -20,7 +25,7 @@ export const DashboardOverview = ({ onStartNewSession, onNavigate }) => {
             </div>
             <button 
               onClick={() => setShowWarning(false)}
-              className="text-[#3d4947] hover:text-[#121c2a]"
+              className="text-[#3d4947] hover:text-[#121c2a] cursor-pointer"
             >
               <span className="material-symbols-outlined text-[20px]">close</span>
             </button>
@@ -34,7 +39,7 @@ export const DashboardOverview = ({ onStartNewSession, onNavigate }) => {
           </div>
           <button 
             onClick={onStartNewSession}
-            className="lg:hidden w-full sm:w-auto h-[40px] px-4 bg-[#00685f] hover:bg-[#008378] text-white rounded-lg text-sm font-semibold transition-colors shadow-sm flex items-center justify-center gap-2"
+            className="lg:hidden w-full sm:w-auto h-[40px] px-4 bg-[#00685f] hover:bg-[#008378] text-white rounded-lg text-sm font-semibold transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">add</span>
             <span>Start New Session</span>
@@ -64,7 +69,7 @@ export const DashboardOverview = ({ onStartNewSession, onNavigate }) => {
         <div className="bg-white rounded-xl border border-[#bcc9c6]/40 p-5 flex flex-col justify-between hover:shadow-sm transition-shadow">
           <div className="flex justify-between items-start mb-2">
             <span className="text-xs font-semibold text-[#3d4947] uppercase tracking-wider">Active VR Sessions</span>
-            <span className="material-symbols-outlined text-[#0061a5] text-[20px]" data-weight="fill">sensors</span>
+            <span className="material-symbols-outlined text-[#0061a5] text-[20px]">sensors</span>
           </div>
           <div className="flex items-baseline gap-2">
             <span className="text-3xl font-bold text-[#121c2a]">8</span>
@@ -118,8 +123,8 @@ export const DashboardOverview = ({ onStartNewSession, onNavigate }) => {
                 Live Sessions
               </h2>
               <button 
-                onClick={() => onNavigate('live-sessions')}
-                className="text-[#0061a5] text-xs font-semibold hover:underline"
+                onClick={() => onNavigate('live')}
+                className="text-[#0061a5] text-xs font-semibold hover:underline cursor-pointer"
               >
                 View All
               </button>
@@ -136,7 +141,7 @@ export const DashboardOverview = ({ onStartNewSession, onNavigate }) => {
                   </tr>
                 </thead>
                 <tbody className="text-xs divide-y divide-[#bcc9c6]/30">
-                  <tr className="hover:bg-[#eff4ff] transition-colors cursor-pointer" onClick={() => onNavigate('live-sessions')}>
+                  <tr className="hover:bg-[#eff4ff] transition-colors cursor-pointer" onClick={() => onNavigate('live')}>
                     <td className="px-4 py-3 font-medium text-[#121c2a] flex items-center gap-2">
                       <span className="material-symbols-outlined text-[16px] text-[#3d4947]">headset_mic</span>
                       Oculus-01
@@ -151,7 +156,7 @@ export const DashboardOverview = ({ onStartNewSession, onNavigate }) => {
                     <td className="px-4 py-3 text-right font-mono text-[#3d4947]">14:22</td>
                   </tr>
 
-                  <tr className="hover:bg-[#eff4ff] transition-colors cursor-pointer" onClick={() => onNavigate('live-sessions')}>
+                  <tr className="hover:bg-[#eff4ff] transition-colors cursor-pointer" onClick={() => onNavigate('live')}>
                     <td className="px-4 py-3 font-medium text-[#121c2a] flex items-center gap-2">
                       <span className="material-symbols-outlined text-[16px] text-[#3d4947]">headset_mic</span>
                       Vive-12
@@ -267,7 +272,7 @@ export const DashboardOverview = ({ onStartNewSession, onNavigate }) => {
           {/* Needs Attention Panel */}
           <div className="bg-white rounded-xl border border-[#ffdad6] overflow-hidden shadow-sm">
             <div className="p-4 border-b border-[#bcc9c6]/30 bg-[#ffdad6]/10 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#F59E0B] text-[20px]" data-weight="fill">
+              <span className="material-symbols-outlined text-[#F59E0B] text-[20px]">
                 error
               </span>
               <h3 className="text-base font-semibold text-[#121c2a]">Needs Attention</h3>
@@ -313,7 +318,7 @@ export const DashboardOverview = ({ onStartNewSession, onNavigate }) => {
               </div>
             </div>
             <div className="p-3 border-t border-[#bcc9c6]/30 bg-[#F9FAFB] text-center">
-              <button onClick={() => onNavigate('students')} className="text-xs font-semibold text-[#0061a5] hover:underline">
+              <button onClick={() => onNavigate('students')} className="text-xs font-semibold text-[#0061a5] hover:underline cursor-pointer">
                 Review Intervention Plan
               </button>
             </div>

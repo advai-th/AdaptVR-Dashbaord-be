@@ -1,18 +1,39 @@
 import React, { useState } from 'react';
+import { api } from '../services/api';
+import { User } from '../types';
 
-export const LoginScreen = ({ onLogin }) => {
-  const [email, setEmail] = useState('teacher@school.edu');
+interface LoginScreenProps {
+  onLogin: (user: User) => void;
+}
+
+export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
+  const [email, setEmail] = useState('evelyn.vance@adaptvr.edu');
   const [password, setPassword] = useState('password123');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email && password.length >= 6) {
-      onLogin({ email, name: 'Dr. E. Vance' });
-    } else {
-      setError('Invalid credentials. Please check your email and password and try again.');
+    setError('');
+    setIsLoading(true);
+
+    try {
+      const data = await api.login(email, password);
+      
+      if (data.token) {
+        localStorage.setItem('adaptvr_auth_token', data.token);
+        localStorage.setItem('adaptvr_user', JSON.stringify(data.user));
+        onLogin(data.user);
+      } else {
+        setError('Authentication failed. No token returned.');
+      }
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message || 'Invalid credentials. Please check your email and password.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -22,12 +43,17 @@ export const LoginScreen = ({ onLogin }) => {
         {/* Header Section */}
         <div className="px-8 pt-8 pb-5 text-center border-b border-[#eff4ff]">
           <div className="flex flex-col items-center justify-center">
-            <img 
-              src="/assets/logo-full.svg" 
-              alt="AdaptVR Platform" 
-              className="h-11 object-contain" 
+            <img
+              src="/assets/logo-icon.svg"
+              alt="AdaptVR Platform"
+              className="h-11 object-contain"
             />
-            <p className="text-xs font-semibold text-[#3d4947] mt-2">Teacher Educator Portal</p>
+            <img
+              src="/assets/logo-full.svg"
+              alt="AdaptVR Platform"
+              className="h-11 object-contain"
+            />
+            <p className="text-xs font-semibold text-[#3d4947] mt-2">Educator Portal Login</p>
           </div>
         </div>
 
@@ -50,7 +76,8 @@ export const LoginScreen = ({ onLogin }) => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@school.edu"
-                  className="w-full h-10 pl-10 pr-4 bg-white border border-[#bcc9c6] rounded-lg text-sm text-[#121c2a] placeholder:text-[#bcc9c6] focus:border-[#00685f] focus:ring-1 focus:ring-[#00685f] transition-colors outline-none"
+                  disabled={isLoading}
+                  className="w-full h-10 pl-10 pr-4 bg-white border border-[#bcc9c6] rounded-lg text-sm text-[#121c2a] placeholder:text-[#bcc9c6] focus:border-[#00685f] focus:ring-1 focus:ring-[#00685f] transition-colors outline-none disabled:bg-gray-50"
                 />
               </div>
             </div>
@@ -76,7 +103,8 @@ export const LoginScreen = ({ onLogin }) => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full h-10 pl-10 pr-10 bg-white border border-[#bcc9c6] rounded-lg text-sm text-[#121c2a] placeholder:text-[#bcc9c6] focus:border-[#00685f] focus:ring-1 focus:ring-[#00685f] transition-colors outline-none"
+                  disabled={isLoading}
+                  className="w-full h-10 pl-10 pr-10 bg-white border border-[#bcc9c6] rounded-lg text-sm text-[#121c2a] placeholder:text-[#bcc9c6] focus:border-[#00685f] focus:ring-1 focus:ring-[#00685f] transition-colors outline-none disabled:bg-gray-50"
                 />
                 <button
                   type="button"
@@ -117,10 +145,20 @@ export const LoginScreen = ({ onLogin }) => {
             {/* Submit Button */}
             <button
               type="submit"
-              className="mt-4 h-10 w-full bg-[#00685f] hover:bg-[#008378] text-white font-semibold text-sm rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm active:scale-[0.98]"
+              disabled={isLoading}
+              className="mt-4 h-10 w-full bg-[#00685f] hover:bg-[#008378] text-white font-semibold text-sm rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              <span>Login to Dashboard</span>
-              <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+              {isLoading ? (
+                <>
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                  <span>Authenticating...</span>
+                </>
+              ) : (
+                <>
+                  <span>Login to Dashboard</span>
+                  <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+                </>
+              )}
             </button>
           </form>
         </div>

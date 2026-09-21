@@ -21,11 +21,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => 
     <nav className="hidden md:flex flex-col h-full py-2 gap-2 bg-[#F9FAFB] dark:bg-[#27313f] fixed left-0 top-0 w-[280px] border-r border-[#bcc9c6] dark:border-slate-700 z-30 select-none">
       {/* Header / Brand */}
       <div className="px-4 py-3 border-b border-[#bcc9c6] dark:border-slate-700 mb-2 h-16 flex items-center">
-        <div className=" px-3 py-1.5 rounded-xl  flex items-center justify-center w-full h-[44px]">
+        <div className="px-3 py-1.5 rounded-xl flex items-center justify-center w-full h-[44px]">
           <img
-            src="/assets/logo-full.svg"
+            src="/assets/vr-logo-light.svg"
             alt="AdaptVR Trainer Platform"
-            className="h-7 w-auto object-contain max-w-[210px]"
+            className="h-8 w-auto object-contain max-w-[210px] dark:hidden"
+          />
+          <img
+            src="/assets/vr-logo-dark.png"
+            alt="AdaptVR Trainer Platform"
+            className="h-14 w-auto object-contain max-w-[210px] hidden dark:block"
           />
         </div>
       </div>

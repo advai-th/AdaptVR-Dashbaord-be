@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { api } from '../services/api';
 
 interface StartSessionModalProps {
   onClose: () => void;
@@ -20,11 +21,28 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({ onClose, o
     { name: 'Emma Watson', class: 'Class 10-B', progress: 40, avatar: 'EW' },
   ];
 
-  const headsetsList = [
+  const [headsetsList, setHeadsetsList] = useState([
     { id: 'Quest-01', code: '8F3A-99B', battery: '100%', status: 'Available' },
     { id: 'Vive-12', code: '4C22-11A', battery: '95%', status: 'Available' },
     { id: 'Quest-08', code: '9K11-00P', battery: '88%', status: 'Available' },
-  ];
+  ]);
+
+  useEffect(() => {
+    api.getDevices()
+      .then((data) => {
+        if (data && data.length > 0) {
+          const mapped = data.map((d) => ({
+            id: d.device_label,
+            code: d.pairing_code ? `Pair: ${d.pairing_code}` : (d.serial_number || d.device_id.slice(0, 8)),
+            battery: d.battery_level != null ? `${d.battery_level}%` : 'Ready',
+            status: d.is_live || d.status === 'online' ? 'Available' : (d.status === 'in_session' ? 'In Session' : 'Standby'),
+          }));
+          setHeadsetsList(mapped);
+          setSelectedHeadset(mapped[0].id);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const modulesList = [
     { title: 'Adaptive Solar System Lab', subject: 'Science', duration: '45 Mins', grade: 'Grade 10' },

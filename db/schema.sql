@@ -178,3 +178,31 @@ CREATE TABLE IF NOT EXISTS ADAPTATION_EVENT (
 CREATE INDEX IF NOT EXISTS idx_adaptation_event_session_id ON ADAPTATION_EVENT(session_id);
 CREATE INDEX IF NOT EXISTS idx_adaptation_event_prediction_id ON ADAPTATION_EVENT(prediction_id);
 CREATE INDEX IF NOT EXISTS idx_adaptation_event_adapted_at ON ADAPTATION_EVENT(adapted_at);
+
+-- =============================================================================
+-- 9. VR_DEVICE TABLE
+-- Persistent inventory of school-owned headsets. The pairing_code is ephemeral
+-- and is refreshed each time the device connects to the backend via WebSocket.
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS VR_DEVICE (
+    device_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    device_label VARCHAR(50) NOT NULL,                          -- e.g. "Quest-01"
+    device_model VARCHAR(100) DEFAULT 'Meta Quest 2',
+    serial_number VARCHAR(100) UNIQUE,
+    pairing_code VARCHAR(20),                                   -- e.g. "748-291", set when device connects
+    status VARCHAR(30) DEFAULT 'offline'
+        CHECK (status IN ('online', 'in_session', 'offline', 'updating')),
+    battery_level INTEGER CHECK (battery_level >= 0 AND battery_level <= 100),
+    firmware_version VARCHAR(30),
+    last_seen TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_vr_device_pairing_code ON VR_DEVICE(pairing_code);
+CREATE INDEX IF NOT EXISTS idx_vr_device_status ON VR_DEVICE(status);
+
+DROP TRIGGER IF EXISTS update_vr_device_updated_at ON VR_DEVICE;
+CREATE TRIGGER update_vr_device_updated_at
+BEFORE UPDATE ON VR_DEVICE
+FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

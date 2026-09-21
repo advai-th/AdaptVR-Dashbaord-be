@@ -64,8 +64,8 @@ export default function App() {
   if (isAuthChecking) {
     return (
       <div className="min-h-screen bg-[#f8f9ff] flex flex-col items-center justify-center font-sans">
-        <div className="w-8 h-8 border-3 border-[#00685f] border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-xs font-semibold text-[#3d4947] mt-3">Connecting to AdaptVR Engine...</p>
+        <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <p className="text-xs font-semibold text-on-surface-variant mt-3">Connecting to AdaptVR Engine...</p>
       </div>
     );
   }
@@ -110,7 +110,7 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <div className="flex-1 flex flex-col md:ml-[280px] min-h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col md:ml-70 min-h-screen overflow-hidden">
         {/* Top Header Bar */}
         <TopNavBar
           activeTab={activeTab}
@@ -121,7 +121,7 @@ export default function App() {
 
         {/* Content Area */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 bg-[#f8f9ff]">
-          <div className="max-w-[1280px] mx-auto">
+          <div className="max-w-7xl mx-auto">
             {activeTab === 'dashboard' && (
               <DashboardOverview
                 onStartNewSession={() => setIsStartSessionOpen(true)}

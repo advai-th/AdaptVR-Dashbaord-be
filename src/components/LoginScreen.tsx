@@ -21,7 +21,7 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
 
     try {
       const data = await api.login(email, password);
-      
+
       if (data.token) {
         localStorage.setItem('adaptvr_auth_token', data.token);
         localStorage.setItem('adaptvr_user', JSON.stringify(data.user));
@@ -41,19 +41,19 @@ export const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
     <div className="bg-[#ffffff] min-h-screen flex items-center justify-center p-4 font-sans text-[#121c2a]">
       <main className="w-full max-w-md bg-white rounded-xl border border-[#bcc9c6]/40 shadow-sm overflow-hidden">
         {/* Header Section */}
-        <div className="px-8 pt-8 pb-5 text-center border-b border-[#eff4ff]">
+        <div className="px-8 pt-3 pb-5 text-center border-b border-[#eff4ff]">
           <div className="flex flex-col items-center justify-center">
             <img
-              src="/assets/logo-icon.svg"
+              src="/assets/vr-logo-dark.svg"
               alt="AdaptVR Platform"
-              className="h-11 object-contain"
+              className="h-11 object-contain dark:hidden"
             />
             <img
-              src="/assets/logo-full.svg"
+              src="/assets/vr-logo-light.svg"
               alt="AdaptVR Platform"
-              className="h-11 object-contain"
+              className="h-18 object-contain hidden dark:block"
             />
-            <p className="text-xs font-semibold text-[#3d4947] mt-2">Educator Portal Login</p>
+            <p className="text-xs font-semibold text-[#3d4947] dark:text-slate-300 mt-2">Educator Portal Login</p>
           </div>
         </div>
 

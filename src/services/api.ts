@@ -1,4 +1,4 @@
-import { TelemetryPayload } from '../types';
+import { TelemetryPayload, VRDevice } from '../types';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 const WS_BASE_URL = 'ws://localhost:5000';
@@ -62,6 +62,21 @@ export const api = {
 
   // Reports
   getSessionReport: (sessionId: string) => fetchJson(`/reports/session/${sessionId}`),
+
+  // Devices & VR Hardware
+  getDevices: () => fetchJson<VRDevice[]>('/devices'),
+  getActiveDevices: () => fetchJson<any[]>('/devices/active'),
+  getDeviceById: (id: string) => fetchJson<VRDevice>(`/devices/${id}`),
+  registerDevice: (deviceData: { device_label: string; pairing_code?: string; device_model?: string; serial_number?: string; firmware_version?: string }) =>
+    fetchJson<VRDevice>('/devices', { method: 'POST', body: JSON.stringify(deviceData) }),
+  updateDevice: (id: string, deviceData: Partial<VRDevice>) =>
+    fetchJson<VRDevice>(`/devices/${id}`, { method: 'PUT', body: JSON.stringify(deviceData) }),
+  deleteDevice: (id: string) =>
+    fetchJson<{ message: string; device: VRDevice }>(`/devices/${id}`, { method: 'DELETE' }),
+  verifyPairingCode: (pairing_code: string) =>
+    fetchJson<any>('/devices/verify-code', { method: 'POST', body: JSON.stringify({ pairing_code }) }),
+  pairDevice: (data: { pairing_code: string; student_id: string; module_id: string; teacher_id?: string }) =>
+    fetchJson<any>('/devices/pair', { method: 'POST', body: JSON.stringify(data) }),
 };
 
 // -------------------------------------------------------------------

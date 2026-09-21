@@ -72,7 +72,7 @@ async function initDatabase() {
 
     console.log(`[+] Executing schema.sql (tables, indexes, triggers)...`);
     await targetPool.query(schemaSql);
-    console.log(`[✓] All 8 tables and indexes created successfully.`);
+    console.log(`[✓] All 9 tables and indexes created successfully.`);
 
     console.log(`[+] Executing seed.sql (sample data)...`);
     await targetPool.query(seedSql);
@@ -87,6 +87,7 @@ async function initDatabase() {
     const eventRes = await targetPool.query('SELECT COUNT(*) FROM INTERACTION_EVENT');
     const predictionRes = await targetPool.query('SELECT COUNT(*) FROM ML_PREDICTION');
     const adaptationRes = await targetPool.query('SELECT COUNT(*) FROM ADAPTATION_EVENT');
+    const deviceRes = await targetPool.query('SELECT COUNT(*) FROM VR_DEVICE');
 
     console.log(`\n======================================================`);
     console.log(` 🎉 AdaptVR Database Ready! Summary of Tables & Records:`);
@@ -99,6 +100,7 @@ async function initDatabase() {
     console.log(`  6. INTERACTION_EVENT: ${eventRes.rows[0].count} records`);
     console.log(`  7. ML_PREDICTION:     ${predictionRes.rows[0].count} records`);
     console.log(`  8. ADAPTATION_EVENT:  ${adaptationRes.rows[0].count} records`);
+    console.log(`  9. VR_DEVICE:         ${deviceRes.rows[0].count} records`);
     console.log(`======================================================\n`);
 
   } catch (err) {

@@ -50,6 +50,21 @@ export interface Headset {
   assignedModule?: string;
 }
 
+export interface VRDevice {
+  device_id: string;
+  device_label: string;
+  device_model: string;
+  serial_number?: string | null;
+  pairing_code?: string | null;
+  status: 'online' | 'in_session' | 'offline' | 'updating' | string;
+  battery_level?: number | null;
+  firmware_version?: string | null;
+  last_seen?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  is_live?: boolean;
+}
+
 export interface TelemetryPayload {
   type: string;
   sessionId?: string;

@@ -12,6 +12,7 @@ import moduleRoutes from './routes/modules.js';
 import sessionRoutes, { setWsBroadcaster } from './routes/sessions.js';
 import analyticsRoutes from './routes/analytics.js';
 import reportRoutes from './routes/reports.js';
+import deviceRoutes, { setPairingRegistry, setDeviceWsBroadcaster } from './routes/devices.js';
 import { query } from '../db/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -30,40 +31,174 @@ app.use(express.json());
 // Attach WebSocket Server
 const wss = new WebSocketServer({ server });
 
-// Active WebSocket Connections Store
+// ---------------------------------------------------------------------------
+// Active WebSocket Connections Store (dashboard / generic clients)
+// ---------------------------------------------------------------------------
 const clients = new Set();
 
+// ---------------------------------------------------------------------------
+// Pairing Registry
+// Maps pairingCode (string) → { ws, deviceId, deviceLabel, deviceModel,
+//                                battery, firmwareVersion, connectedAt }
+// Populated when a Quest headset sends a "device.register" WS message.
+// Cleared automatically when the socket closes.
+// ---------------------------------------------------------------------------
+const pairingRegistry = new Map();
+
+// Inject the shared registry into the devices route so /api/devices/pair
+// and /api/devices/active can access live connections
+setPairingRegistry(pairingRegistry);
+
+// ---------------------------------------------------------------------------
+// WebSocket Connection Handler
+// ---------------------------------------------------------------------------
 wss.on('connection', (ws, req) => {
   clients.add(ws);
   console.log(`[WebSocket] New client connected from ${req.socket.remoteAddress}. Total active: ${clients.size}`);
 
   ws.send(JSON.stringify({
     type: 'connection.established',
-    message: 'Connected to AdaptVR Real-Time Telemetry Stream'
+    message: 'Connected to AdaptVR Real-Time Telemetry Stream',
   }));
 
-  ws.on('message', (message) => {
+  // Track which pairing code this socket owns (if it is a Quest headset)
+  ws._pairingCode = null;
+
+  ws.on('message', async (message) => {
+    let parsed;
     try {
-      const parsed = JSON.parse(message.toString());
-      console.log(`[WebSocket Received]:`, parsed.type);
-      
-      // Echo or broadcast incoming client messages to all subscribers
-      broadcast({
-        type: parsed.type || 'client.message',
-        data: parsed.data || parsed
-      });
+      parsed = JSON.parse(message.toString());
     } catch (e) {
       console.error('[WebSocket] Error parsing message:', e.message);
+      return;
     }
+
+    console.log(`[WebSocket] Received message type: ${parsed.type}`);
+
+    // ------------------------------------------------------------------
+    // device.register  — sent by the Quest app on startup
+    // Payload: { type, pairingCode, deviceLabel?, deviceModel?, battery?,
+    //            firmwareVersion?, serialNumber? }
+    // ------------------------------------------------------------------
+    if (parsed.type === 'device.register') {
+      const code = String(parsed.pairingCode || '').trim().toUpperCase();
+
+      if (!code) {
+        ws.send(JSON.stringify({ type: 'device.register.error', error: 'pairingCode is required' }));
+        return;
+      }
+
+      // If this socket previously held a different code, remove it
+      if (ws._pairingCode && ws._pairingCode !== code) {
+        pairingRegistry.delete(ws._pairingCode);
+      }
+
+      ws._pairingCode = code;
+
+      // Try to match this code to a persisted VR_DEVICE record (optional — the
+      // device can connect before it has been registered in the inventory)
+      let deviceId = null;
+      try {
+        const devRes = await query(
+          `UPDATE VR_DEVICE
+           SET pairing_code = $1, status = 'online',
+               battery_level = $2, firmware_version = COALESCE($3, firmware_version),
+               last_seen = CURRENT_TIMESTAMP
+           WHERE serial_number = $4
+           RETURNING device_id, device_label`,
+          [
+            code,
+            parsed.battery ?? null,
+            parsed.firmwareVersion ?? null,
+            parsed.serialNumber ?? null,
+          ]
+        );
+
+        if (devRes.rows.length > 0) {
+          deviceId = devRes.rows[0].device_id;
+          parsed.deviceLabel = parsed.deviceLabel || devRes.rows[0].device_label;
+        }
+      } catch (dbErr) {
+        console.warn('[WebSocket] Could not update VR_DEVICE record:', dbErr.message);
+      }
+
+      // Register in the in-memory pairing map
+      pairingRegistry.set(code, {
+        ws,
+        deviceId,
+        deviceLabel: parsed.deviceLabel || 'Quest Headset',
+        deviceModel: parsed.deviceModel || 'Meta Quest 2',
+        serialNumber: parsed.serialNumber || null,
+        battery: parsed.battery ?? null,
+        firmwareVersion: parsed.firmwareVersion || null,
+        connectedAt: new Date().toISOString(),
+      });
+
+      console.log(`[Pairing] Headset registered with code: ${code} (active codes: ${pairingRegistry.size})`);
+
+      // Acknowledge back to headset
+      ws.send(JSON.stringify({
+        type: 'device.register.ack',
+        pairingCode: code,
+        message: 'Registered — display this code and wait for instructor.',
+      }));
+
+      // Notify dashboard that a new headset is available
+      broadcast({
+        type: 'device.connected',
+        pairingCode: code,
+        deviceLabel: parsed.deviceLabel || 'Quest Headset',
+        deviceModel: parsed.deviceModel || 'Meta Quest 2',
+        battery: parsed.battery ?? null,
+      });
+
+      return;
+    }
+
+    // ------------------------------------------------------------------
+    // All other incoming messages — broadcast to dashboard subscribers
+    // ------------------------------------------------------------------
+    broadcast({
+      type: parsed.type || 'client.message',
+      data: parsed.data || parsed,
+    });
   });
 
-  ws.on('close', () => {
+  ws.on('close', async () => {
     clients.delete(ws);
+
+    // Clean up pairing registry if this was a headset
+    if (ws._pairingCode) {
+      const code = ws._pairingCode;
+      const entry = pairingRegistry.get(code);
+      pairingRegistry.delete(code);
+
+      console.log(`[Pairing] Headset disconnected, removed code: ${code} (active codes: ${pairingRegistry.size})`);
+
+      // Mark device offline in DB
+      if (entry?.deviceId) {
+        query(
+          `UPDATE VR_DEVICE
+           SET status = 'offline', pairing_code = NULL, last_seen = CURRENT_TIMESTAMP
+           WHERE device_id = $1`,
+          [entry.deviceId]
+        ).catch((e) => console.warn('[WebSocket] Could not mark device offline:', e.message));
+      }
+
+      broadcast({
+        type: 'device.disconnected',
+        pairingCode: code,
+        deviceLabel: entry?.deviceLabel,
+      });
+    }
+
     console.log(`[WebSocket] Client disconnected. Total active: ${clients.size}`);
   });
 });
 
-// Broadcast Helper Function
+// ---------------------------------------------------------------------------
+// Broadcast Helper — sends to all open dashboard / generic clients
+// ---------------------------------------------------------------------------
 function broadcast(payload) {
   const jsonPayload = JSON.stringify(payload);
   for (const client of clients) {
@@ -73,18 +208,20 @@ function broadcast(payload) {
   }
 }
 
-// Inject broadcast capability into session routes
+// Inject broadcast capability into session routes and device routes
 setWsBroadcaster(broadcast);
+setDeviceWsBroadcaster(broadcast);
 
-// -------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // Register REST API Routes
-// -------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 app.use('/api/auth', authRoutes);
 app.use('/api/students', studentRoutes);
 app.use('/api/modules', moduleRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/devices', deviceRoutes);
 
 // Health Check Endpoint
 app.get('/api/health', async (req, res) => {
@@ -95,7 +232,9 @@ app.get('/api/health', async (req, res) => {
       service: 'AdaptVR Core Backend Service',
       version: '1.0.0',
       timestamp: dbRes.rows[0].now,
-      active_ws_connections: clients.size
+      active_ws_connections: clients.size,
+      active_headsets: pairingRegistry.size,
+      active_pairing_codes: Array.from(pairingRegistry.keys()),
     });
   } catch (err) {
     res.status(500).json({ status: 'error', database: 'disconnected', error: err.message });
@@ -110,6 +249,7 @@ server.listen(PORT, () => {
   console.log(`  - REST API Base:  http://localhost:${PORT}/api`);
   console.log(`  - Health Check:  http://localhost:${PORT}/api/health`);
   console.log(`  - WebSocket URL: ws://localhost:${PORT}`);
+  console.log(`  - Device Pairing: ws://localhost:${PORT}  (device.register)`);
   console.log(`======================================================\n`);
 });
 

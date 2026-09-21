@@ -26,8 +26,9 @@ export const TopNavBar: React.FC<TopNavBarProps> = ({
       {/* Left: Brand (Mobile) / Search */}
       <div className="flex items-center gap-4 flex-1">
         <div className="md:hidden mr-4 flex items-center">
-          <div className="bg-white px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-600 shadow-sm flex items-center h-[36px]">
-            <img src="/assets/logo-full.svg" alt="AdaptVR" className="h-6 w-auto object-contain" />
+          <div className="px-2.5 py-1 rounded-lg flex items-center h-[36px]">
+            <img src="/assets/vr-logo-dark.svg" alt="AdaptVR" className="h-6 w-auto object-contain dark:hidden" />
+            <img src="/assets/vr-logo-light.svg" alt="AdaptVR" className="h-6 w-auto object-contain hidden dark:block" />
           </div>
         </div>
         <div className="relative w-full max-w-md hidden sm:block">

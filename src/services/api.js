@@ -59,6 +59,21 @@ export const api = {
 
   // Reports
   getSessionReport: (sessionId) => fetchJson(`/reports/session/${sessionId}`),
+
+  // Devices & VR Hardware
+  getDevices: () => fetchJson('/devices'),
+  getActiveDevices: () => fetchJson('/devices/active'),
+  getDeviceById: (id) => fetchJson(`/devices/${id}`),
+  registerDevice: (deviceData) =>
+    fetchJson('/devices', { method: 'POST', body: JSON.stringify(deviceData) }),
+  updateDevice: (id, deviceData) =>
+    fetchJson(`/devices/${id}`, { method: 'PUT', body: JSON.stringify(deviceData) }),
+  deleteDevice: (id) =>
+    fetchJson(`/devices/${id}`, { method: 'DELETE' }),
+  verifyPairingCode: (pairing_code) =>
+    fetchJson('/devices/verify-code', { method: 'POST', body: JSON.stringify({ pairing_code }) }),
+  pairDevice: (data) =>
+    fetchJson('/devices/pair', { method: 'POST', body: JSON.stringify(data) }),
 };
 
 // -------------------------------------------------------------------

@@ -58,6 +58,18 @@ export const RegisterDeviceModal: React.FC<RegisterDeviceModalProps> = ({
     onClose();
   };
 
+  // Auto-format pairing code with hyphen after 3 digits: e.g. 748-291
+  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+    const digits = raw.replace(/[^0-9A-Za-z]/g, '').toUpperCase().slice(0, 6);
+    let formatted = digits;
+    if (digits.length > 3) {
+      formatted = `${digits.slice(0, 3)}-${digits.slice(3)}`;
+    }
+    setPairingCode(formatted);
+    setVerifyError(null);
+  };
+
   // Step 1: Verify pairing code entered by teacher
   const handleVerifyCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,12 +209,9 @@ export const RegisterDeviceModal: React.FC<RegisterDeviceModalProps> = ({
                   required
                   autoFocus
                   value={pairingCode}
-                  onChange={(e) => {
-                    setPairingCode(e.target.value.toUpperCase());
-                    setVerifyError(null);
-                  }}
+                  onChange={handleCodeChange}
                   placeholder="e.g. 748-291"
-                  maxLength={10}
+                  maxLength={7}
                   className="w-full text-center text-2xl font-mono font-extrabold tracking-widest py-3 px-4 bg-white border-2 border-[#00685f]/40 rounded-xl text-[#121c2a] placeholder-[#bcc9c6] focus:outline-none focus:border-[#00685f] focus:ring-4 focus:ring-[#00685f]/15 transition-all uppercase"
                 />
               </div>

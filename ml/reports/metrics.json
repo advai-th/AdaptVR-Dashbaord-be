@@ -1,0 +1,10 @@
+{
+  "accuracy": 0.9007,
+  "macro_f1": 0.8998,
+  "per_class_f1": {
+    "High": 0.9146,
+    "Low": 0.9378,
+    "Medium": 0.8469
+  },
+  "note": "Model trained on proxy (non-VR) data. Performance may not reflect real VR session accuracy. Fine-tune once real VR data is collected."
+}

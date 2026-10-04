@@ -31,6 +31,8 @@ async function fetchJson<T = any>(endpoint: string, options: RequestInit = {}): 
 export const api = {
   // Auth
   login: (email: string, password: string) => fetchJson('/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+  register: (full_name: string, email: string, password: string) =>
+    fetchJson('/auth/register', { method: 'POST', body: JSON.stringify({ full_name, email, password }) }),
   getMe: () => fetchJson('/auth/me'),
 
   // Students
@@ -41,7 +43,14 @@ export const api = {
 
   // Modules
   getModules: () => fetchJson('/modules'),
+  getModuleById: (id: string) => fetchJson(`/modules/${id}`),
   createModule: (moduleData: any) => fetchJson('/modules', { method: 'POST', body: JSON.stringify(moduleData) }),
+  updateModule: (id: string, moduleData: any) => fetchJson(`/modules/${id}`, { method: 'PUT', body: JSON.stringify(moduleData) }),
+  deleteModule: (id: string) => fetchJson(`/modules/${id}`, { method: 'DELETE' }),
+
+  // Students update & delete
+  updateStudent: (id: string, data: any) => fetchJson(`/students/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteStudent: (id: string) => fetchJson(`/students/${id}`, { method: 'DELETE' }),
 
   // Sessions
   getSessions: (params: Record<string, string> = {}) => {
@@ -50,7 +59,7 @@ export const api = {
   },
   getSessionById: (id: string) => fetchJson(`/sessions/${id}`),
   startSession: (sessionData: any) => fetchJson('/sessions', { method: 'POST', body: JSON.stringify(sessionData) }),
-  endSession: (id: string, data: any) => fetchJson(`/sessions/${id}/end`, { method: 'POST', body: JSON.stringify(data) }),
+  endSession: (id: string, data: any = {}) => fetchJson(`/sessions/${id}/end`, { method: 'POST', body: JSON.stringify(data) }),
 
   // Telemetry Ingestion
   postEvent: (sessionId: string, eventData: any) => fetchJson(`/sessions/${sessionId}/events`, { method: 'POST', body: JSON.stringify(eventData) }),
@@ -62,6 +71,16 @@ export const api = {
 
   // Reports
   getSessionReport: (sessionId: string) => fetchJson(`/reports/session/${sessionId}`),
+
+  // Model & Continuous Learning
+  getModelVersion: () => fetchJson('/model/version'),
+  getModelHistory: () => fetchJson('/model/history'),
+  getTrainingStats: () => fetchJson('/training/stats'),
+  setTeacherLabel: (featureId: string, label: string) =>
+    fetchJson(`/training/features/${featureId}/label`, { method: 'POST', body: JSON.stringify({ label }) }),
+
+  // Health
+  getHealth: () => fetchJson('/health'),
 
   // Devices & VR Hardware
   getDevices: () => fetchJson<VRDevice[]>('/devices'),
@@ -78,6 +97,14 @@ export const api = {
   pairDevice: (data: { pairing_code: string; student_id: string; module_id: string; teacher_id?: string }) =>
     fetchJson<any>('/devices/pair', { method: 'POST', body: JSON.stringify(data) }),
 };
+
+export function sendTelemetryWsMessage(ws: WebSocket | null, payload: any): boolean {
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(payload));
+    return true;
+  }
+  return false;
+}
 
 // -------------------------------------------------------------------
 // Real-Time WebSocket Client Connection

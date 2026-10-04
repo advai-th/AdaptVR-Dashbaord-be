@@ -2,58 +2,187 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../services/api';
 
 interface StartSessionModalProps {
+  initialContext?: { student?: any, module?: any, headset?: any };
   onClose: () => void;
   onSessionStarted: (sessionData: any) => void;
 }
 
-export const StartSessionModal: React.FC<StartSessionModalProps> = ({ onClose, onSessionStarted }) => {
+interface StudentItem {
+  id: string;
+  name: string;
+  class: string;
+  progress: number;
+  avatar: string;
+}
+
+interface ModuleItem {
+  id: string;
+  title: string;
+  subject: string;
+  duration: string;
+  grade: string;
+}
+
+interface HeadsetListItem {
+  id: string;
+  code: string;
+  pairing_code?: string | null;
+  device_id?: string;
+  battery: string;
+  status: string;
+}
+
+export const StartSessionModal: React.FC<StartSessionModalProps> = ({ initialContext, onClose, onSessionStarted }) => {
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedStudent, setSelectedStudent] = useState('Alex Chen');
-  const [selectedHeadset, setSelectedHeadset] = useState('Quest-01');
-  const [selectedModule, setSelectedModule] = useState('Adaptive Solar System Lab');
   const [mode, setMode] = useState('Guided');
   const [preTest, setPreTest] = useState(true);
 
-  const studentsList = [
-    { name: 'Alex Chen', class: 'Class 10-B', progress: 85, avatar: 'AC' },
-    { name: 'Sarah Jenkins', class: 'Class 10-B', progress: 62, avatar: 'SJ' },
-    { name: 'Marcus Chen', class: 'Class 10-A', progress: 91, avatar: 'MC' },
-    { name: 'Emma Watson', class: 'Class 10-B', progress: 40, avatar: 'EW' },
-  ];
+  const [studentsList, setStudentsList] = useState<StudentItem[]>([
+    { id: 'a1b2c3d4-e5f6-4a8b-9c0d-e1f2a3b4c5d6', name: 'Alex Smith', class: 'Grade 10', progress: 85, avatar: 'AS' },
+    { id: 'b2c3d4e5-f6a7-4b9c-8d1e-2f3a4b5c6d7e', name: 'Emily Johnson', class: 'Grade 11', progress: 62, avatar: 'EJ' },
+    { id: 'c3d4e5f6-a7b8-4c0d-8e2f-3a4b5c6d7e8f', name: 'Michael Brown', class: 'Grade 9', progress: 40, avatar: 'MB' },
+    { id: '7a7f2850-f3a4-4b48-9229-ba595dc69992', name: 'Sophia Rodriguez', class: 'Grade 10', progress: 75, avatar: 'SR' },
+  ]);
 
-  const [headsetsList, setHeadsetsList] = useState([
+  const [modulesList, setModulesList] = useState<ModuleItem[]>([
+    { id: '33a7e53f-4279-455b-b9d9-bf7b1b3690d1', title: 'Mechanical Gear Assembly & Inspection', subject: 'Mechanical', duration: '45 Mins', grade: 'Grade 10' },
+    { id: '44b8f64f-538a-466c-aad0-cf8c2c47a1d2', title: 'Tyre Balancing & Calibration', subject: 'Automotive', duration: '30 Mins', grade: 'Grade 10' },
+    { id: '55c9a75f-649b-477d-aae1-df9d3d58b2e3', title: 'Circuit Diagram Troubleshooting', subject: 'Electronics', duration: '40 Mins', grade: 'Grade 10' },
+    { id: '66da186f-75ac-488e-acf2-ef0e4e69c3f4', title: 'Adaptive Solar System Lab', subject: 'Science', duration: '35 Mins', grade: 'Grade 10' },
+  ]);
+
+  const [headsetsList, setHeadsetsList] = useState<HeadsetListItem[]>([
     { id: 'Quest-01', code: '8F3A-99B', battery: '100%', status: 'Available' },
     { id: 'Vive-12', code: '4C22-11A', battery: '95%', status: 'Available' },
     { id: 'Quest-08', code: '9K11-00P', battery: '88%', status: 'Available' },
   ]);
 
+  const [selectedStudent, setSelectedStudent] = useState('Alex Smith');
+  const [selectedStudentId, setSelectedStudentId] = useState('a1b2c3d4-e5f6-4a8b-9c0d-e1f2a3b4c5d6');
+
+  const [selectedHeadset, setSelectedHeadset] = useState('Quest-01');
+
+  const [selectedModule, setSelectedModule] = useState('Adaptive Solar System Lab');
+  const [selectedModuleId, setSelectedModuleId] = useState('66da186f-75ac-488e-acf2-ef0e4e69c3f4');
+
   useEffect(() => {
+    // 1. Fetch live headsets
     api.getDevices()
       .then((data) => {
         if (data && data.length > 0) {
-          const mapped = data.map((d) => ({
+          const mapped: HeadsetListItem[] = data.map((d) => ({
             id: d.device_label,
             code: d.pairing_code ? `Pair: ${d.pairing_code}` : (d.serial_number || d.device_id.slice(0, 8)),
+            pairing_code: d.pairing_code,
+            device_id: d.device_id,
             battery: d.battery_level != null ? `${d.battery_level}%` : 'Ready',
             status: d.is_live || d.status === 'online' ? 'Available' : (d.status === 'in_session' ? 'In Session' : 'Standby'),
           }));
           setHeadsetsList(mapped);
-          setSelectedHeadset(mapped[0].id);
+          
+          if (initialContext?.headset) {
+            setSelectedHeadset(initialContext.headset.id || mapped[0].id);
+          } else {
+            setSelectedHeadset(mapped[0].id);
+          }
         }
       })
       .catch(() => {});
+
+    // 2. Fetch real students from DB
+    api.getStudents()
+      .then((data: any) => {
+        if (data && data.length > 0) {
+          const mapped: StudentItem[] = data.map((st: any) => ({
+            id: st.student_id,
+            name: st.full_name,
+            class: st.grade || 'Grade 10',
+            progress: 80,
+            avatar: st.full_name.split(' ').map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'ST',
+          }));
+          setStudentsList(mapped);
+          
+          if (initialContext?.student) {
+            // Find by name or ID
+            const found = mapped.find(s => s.id === initialContext.student.id || s.name === initialContext.student.name || s.name === initialContext.student.full_name);
+            if (found) {
+              setSelectedStudent(found.name);
+              setSelectedStudentId(found.id);
+            } else {
+              setSelectedStudent(mapped[0].name);
+              setSelectedStudentId(mapped[0].id);
+            }
+          } else {
+            setSelectedStudent(mapped[0].name);
+            setSelectedStudentId(mapped[0].id);
+          }
+        }
+      })
+      .catch(() => {});
+
+    // 3. Fetch real modules from DB
+    api.getModules()
+      .then((data: any) => {
+        if (data && data.length > 0) {
+          const mapped: ModuleItem[] = data.map((m: any) => ({
+            id: m.module_id,
+            title: m.module_name,
+            subject: m.category || 'Science',
+            duration: '45 Mins',
+            grade: m.difficulty_level ? `Level: ${m.difficulty_level}` : 'Grade 10',
+          }));
+          setModulesList(mapped);
+          
+          if (initialContext?.module) {
+            const found = mapped.find(m => m.id === initialContext.module.id || m.title === initialContext.module.title);
+            if (found) {
+              setSelectedModule(found.title);
+              setSelectedModuleId(found.id);
+            } else {
+              // Fallback to exactly what was passed from the frontend if not in DB yet
+              setSelectedModule(initialContext.module.title);
+              setSelectedModuleId(initialContext.module.id);
+            }
+          } else {
+            setSelectedModule(mapped[0].title);
+            setSelectedModuleId(mapped[0].id);
+          }
+        }
+      })
+      .catch(() => {});
+      
+    // Set initial step based on context
+    if (initialContext?.module && !initialContext?.student) {
+      setCurrentStep(1); // Still need student
+    } else if (initialContext?.student && !initialContext?.module) {
+      setCurrentStep(3); // Skip to module
+    } else if (initialContext?.headset) {
+      setCurrentStep(1); // Start from beginning
+    }
   }, []);
 
-  const modulesList = [
-    { title: 'Adaptive Solar System Lab', subject: 'Science', duration: '45 Mins', grade: 'Grade 10' },
-    { title: 'Cellular Mitosis V2', subject: 'Biology', duration: '30 Mins', grade: 'Grade 10' },
-    { title: 'Physics: Gravity Mechanics', subject: 'Physics', duration: '40 Mins', grade: 'Grade 10' },
-  ];
-
-  const handleNext = () => {
-    if (currentStep < 5) {
-      setCurrentStep(currentStep + 1);
+  const handleNext = async () => {
+    if (currentStep < 4) {
+      let nextStep = currentStep + 1;
+      if (nextStep === 2 && initialContext?.headset) nextStep++;
+      if (nextStep === 3 && initialContext?.module) nextStep++;
+      setCurrentStep(nextStep);
     } else {
+      // Find selected headset
+      const chosenHeadset = headsetsList.find((h) => h.id === selectedHeadset);
+      if (chosenHeadset?.pairing_code) {
+        try {
+          console.log(`[StartSessionModal] Pairing headset ${chosenHeadset.pairing_code} with student ${selectedStudent} (${selectedStudentId}) and module ${selectedModule} (${selectedModuleId})`);
+          await api.pairDevice({
+            pairing_code: chosenHeadset.pairing_code,
+            student_id: selectedStudentId,
+            module_id: selectedModuleId,
+          });
+        } catch (err) {
+          console.error('[StartSessionModal] Failed to dispatch session to headset:', err);
+        }
+      }
+
       onSessionStarted({
         student: selectedStudent,
         id: selectedHeadset,
@@ -64,8 +193,13 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({ onClose, o
   };
 
   const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+    let prevStep = currentStep - 1;
+    if (prevStep === 3 && initialContext?.module) prevStep--;
+    if (prevStep === 2 && initialContext?.headset) prevStep--;
+    if (prevStep === 1 && initialContext?.student) prevStep--;
+
+    if (prevStep >= 1) {
+      setCurrentStep(prevStep);
     } else {
       onClose();
     }
@@ -95,8 +229,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({ onClose, o
                 { num: 1, label: 'Student' },
                 { num: 2, label: 'Headset' },
                 { num: 3, label: 'Module' },
-                { num: 4, label: 'Configure' },
-                { num: 5, label: 'Confirm' },
+                { num: 4, label: 'Confirm' },
               ].map((step, idx) => {
                 const isPassed = currentStep > step.num;
                 const isCurrent = currentStep === step.num;
@@ -125,7 +258,7 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({ onClose, o
                       </span>
                     </div>
 
-                    {idx < 4 && (
+                    {idx < 3 && (
                       <div
                         className={`flex-1 h-0.5 mx-2 ${
                           currentStep > step.num ? 'bg-[#008378]' : 'bg-[#bcc9c6]/40'
@@ -148,10 +281,13 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({ onClose, o
               <div className="grid grid-cols-1 gap-3 mt-4">
                 {studentsList.map((st) => (
                   <div
-                    key={st.name}
-                    onClick={() => setSelectedStudent(st.name)}
+                    key={st.id}
+                    onClick={() => {
+                      setSelectedStudent(st.name);
+                      setSelectedStudentId(st.id);
+                    }}
                     className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
-                      selectedStudent === st.name
+                      selectedStudentId === st.id
                         ? 'border-[#00685f] bg-[#008378]/10 shadow-sm'
                         : 'border-[#bcc9c6]/40 bg-white hover:bg-[#eff4ff]'
                     }`}
@@ -208,10 +344,13 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({ onClose, o
               <div className="grid grid-cols-1 gap-3 mt-4">
                 {modulesList.map((m) => (
                   <div
-                    key={m.title}
-                    onClick={() => setSelectedModule(m.title)}
+                    key={m.id}
+                    onClick={() => {
+                      setSelectedModule(m.title);
+                      setSelectedModuleId(m.id);
+                    }}
                     className={`p-4 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
-                      selectedModule === m.title
+                      selectedModuleId === m.id
                         ? 'border-[#00685f] bg-[#008378]/10 shadow-sm'
                         : 'border-[#bcc9c6]/40 bg-white hover:bg-[#eff4ff]'
                     }`}
@@ -228,49 +367,9 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({ onClose, o
             </div>
           )}
 
+
+
           {currentStep === 4 && (
-            <div className="space-y-6 max-w-xl mx-auto">
-              <h2 className="text-xl font-bold text-[#121c2a] text-center">Configure Session</h2>
-              <p className="text-xs text-[#3d4947] text-center">Set session mode and evaluation parameters</p>
-              
-              <div className="bg-white p-5 rounded-xl border border-[#bcc9c6]/40 space-y-4">
-                <div>
-                  <label className="text-xs font-semibold text-[#3d4947] uppercase tracking-wider block mb-2">Session Mode</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setMode('Guided')}
-                      className={`py-2 px-4 rounded-lg text-xs font-semibold border cursor-pointer ${mode === 'Guided' ? 'bg-[#008378] text-white border-[#00685f]' : 'border-[#bcc9c6] text-[#3d4947]'}`}
-                    >
-                      Guided Mode
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setMode('Free Exploration')}
-                      className={`py-2 px-4 rounded-lg text-xs font-semibold border cursor-pointer ${mode === 'Free Exploration' ? 'bg-[#008378] text-white border-[#00685f]' : 'border-[#bcc9c6] text-[#3d4947]'}`}
-                    >
-                      Free Exploration
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-3 border-t border-[#eff4ff]">
-                  <div>
-                    <h4 className="text-sm font-semibold text-[#121c2a]">Enable Pre-Test Assessment</h4>
-                    <p className="text-xs text-[#3d4947]">Runs 3 quick diagnostic questions before module</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={preTest}
-                    onChange={(e) => setPreTest(e.target.checked)}
-                    className="w-5 h-5 rounded border-[#bcc9c6] text-[#00685f] cursor-pointer"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
-          {currentStep === 5 && (
             <div className="space-y-6 max-w-2xl mx-auto">
               <div className="text-center">
                 <h2 className="text-xl font-bold text-[#121c2a]">Review Session Details</h2>
@@ -322,9 +421,9 @@ export const StartSessionModal: React.FC<StartSessionModalProps> = ({ onClose, o
             onClick={handleNext}
             className="px-6 py-2 rounded-lg bg-[#00685f] hover:bg-[#008378] text-white text-xs font-semibold transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
           >
-            <span>{currentStep === 5 ? 'Confirm and Start' : 'Next Step'}</span>
+            <span>{currentStep === 4 ? 'Confirm and Start' : 'Next Step'}</span>
             <span className="material-symbols-outlined text-[16px]">
-              {currentStep === 5 ? 'play_arrow' : 'arrow_forward'}
+              {currentStep === 4 ? 'play_arrow' : 'arrow_forward'}
             </span>
           </button>
         </footer>

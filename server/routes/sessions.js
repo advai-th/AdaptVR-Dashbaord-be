@@ -174,28 +174,40 @@ router.post('/:id/end', async (req, res) => {
 // POST /api/sessions/:id/events (VR Client Telemetry Ingestion)
 router.post('/:id/events', async (req, res) => {
   const { id } = req.params;
-  const { event_type, object_name, response_time, error_count, interaction_value } = req.body;
+  const { event_type, object_name, response_time, error_count, interaction_value, idempotency_key } = req.body;
 
   if (!event_type) {
     return res.status(400).json({ error: 'event_type is required' });
   }
 
   try {
-    const result = await query(
-      `INSERT INTO INTERACTION_EVENT (session_id, event_type, object_name, response_time, error_count, interaction_value)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
-      [id, event_type, object_name || null, response_time || 0.0, error_count || 0, JSON.stringify(interaction_value || {})]
-    );
+    // If an idempotency key is provided, use INSERT ... ON CONFLICT DO NOTHING so that
+    // replayed offline events never create duplicate rows.
+    let result;
+    if (idempotency_key) {
+      result = await query(
+        `INSERT INTO INTERACTION_EVENT (session_id, event_type, object_name, response_time, error_count, interaction_value, idempotency_key)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (idempotency_key) DO NOTHING
+         RETURNING *`,
+        [id, event_type, object_name || null, response_time || 0.0, error_count || 0, JSON.stringify(interaction_value || {}), idempotency_key]
+      );
+    } else {
+      result = await query(
+        `INSERT INTO INTERACTION_EVENT (session_id, event_type, object_name, response_time, error_count, interaction_value)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [id, event_type, object_name || null, response_time || 0.0, error_count || 0, JSON.stringify(interaction_value || {})]
+      );
+    }
+
+    // ON CONFLICT DO NOTHING returns 0 rows — treat as idempotent success
+    if (result.rows.length === 0) {
+      return res.status(200).json({ message: 'Duplicate event ignored (idempotent)', idempotency_key });
+    }
 
     const newEvent = result.rows[0];
-
-    broadcastWsEvent({
-      type: 'interaction.event',
-      sessionId: id,
-      data: newEvent
-    });
-
+    broadcastWsEvent({ type: 'interaction.event', sessionId: id, data: newEvent });
     res.status(201).json(newEvent);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -205,28 +217,37 @@ router.post('/:id/events', async (req, res) => {
 // POST /api/sessions/:id/predictions (ML Cognitive Load Ingestion)
 router.post('/:id/predictions', async (req, res) => {
   const { id } = req.params;
-  const { predicted_cognitive_load, confidence_score } = req.body;
+  const { predicted_cognitive_load, confidence_score, idempotency_key } = req.body;
 
   if (!predicted_cognitive_load || confidence_score === undefined) {
     return res.status(400).json({ error: 'predicted_cognitive_load and confidence_score are required' });
   }
 
   try {
-    const result = await query(
-      `INSERT INTO ML_PREDICTION (session_id, predicted_cognitive_load, confidence_score)
-       VALUES ($1, $2, $3)
-       RETURNING *`,
-      [id, predicted_cognitive_load, confidence_score]
-    );
+    let result;
+    if (idempotency_key) {
+      result = await query(
+        `INSERT INTO ML_PREDICTION (session_id, predicted_cognitive_load, confidence_score, idempotency_key)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (idempotency_key) DO NOTHING
+         RETURNING *`,
+        [id, predicted_cognitive_load, confidence_score, idempotency_key]
+      );
+    } else {
+      result = await query(
+        `INSERT INTO ML_PREDICTION (session_id, predicted_cognitive_load, confidence_score)
+         VALUES ($1, $2, $3)
+         RETURNING *`,
+        [id, predicted_cognitive_load, confidence_score]
+      );
+    }
+
+    if (result.rows.length === 0) {
+      return res.status(200).json({ message: 'Duplicate prediction ignored (idempotent)', idempotency_key });
+    }
 
     const newPrediction = result.rows[0];
-
-    broadcastWsEvent({
-      type: 'ml.prediction',
-      sessionId: id,
-      data: newPrediction
-    });
-
+    broadcastWsEvent({ type: 'ml.prediction', sessionId: id, data: newPrediction });
     res.status(201).json(newPrediction);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -236,28 +257,37 @@ router.post('/:id/predictions', async (req, res) => {
 // POST /api/sessions/:id/adaptations (Adaptation Event Ingestion)
 router.post('/:id/adaptations', async (req, res) => {
   const { id } = req.params;
-  const { prediction_id, adaptation_type, previous_difficulty, new_difficulty, description } = req.body;
+  const { prediction_id, adaptation_type, previous_difficulty, new_difficulty, description, idempotency_key } = req.body;
 
   if (!adaptation_type) {
     return res.status(400).json({ error: 'adaptation_type is required' });
   }
 
   try {
-    const result = await query(
-      `INSERT INTO ADAPTATION_EVENT (session_id, prediction_id, adaptation_type, previous_difficulty, new_difficulty, description)
-       VALUES ($1, $2, $3, $4, $5, $6)
-       RETURNING *`,
-      [id, prediction_id || null, adaptation_type, previous_difficulty || null, new_difficulty || null, description || '']
-    );
+    let result;
+    if (idempotency_key) {
+      result = await query(
+        `INSERT INTO ADAPTATION_EVENT (session_id, prediction_id, adaptation_type, previous_difficulty, new_difficulty, description, idempotency_key)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         ON CONFLICT (idempotency_key) DO NOTHING
+         RETURNING *`,
+        [id, prediction_id || null, adaptation_type, previous_difficulty || null, new_difficulty || null, description || '', idempotency_key]
+      );
+    } else {
+      result = await query(
+        `INSERT INTO ADAPTATION_EVENT (session_id, prediction_id, adaptation_type, previous_difficulty, new_difficulty, description)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [id, prediction_id || null, adaptation_type, previous_difficulty || null, new_difficulty || null, description || '']
+      );
+    }
+
+    if (result.rows.length === 0) {
+      return res.status(200).json({ message: 'Duplicate adaptation ignored (idempotent)', idempotency_key });
+    }
 
     const newAdaptation = result.rows[0];
-
-    broadcastWsEvent({
-      type: 'adaptation.event',
-      sessionId: id,
-      data: newAdaptation
-    });
-
+    broadcastWsEvent({ type: 'adaptation.event', sessionId: id, data: newAdaptation });
     res.status(201).json(newAdaptation);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -265,3 +295,4 @@ router.post('/:id/adaptations', async (req, res) => {
 });
 
 export default router;
+

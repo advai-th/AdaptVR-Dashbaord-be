@@ -10,6 +10,9 @@ import { StudentProfileAnalytics } from './components/StudentProfileAnalytics';
 import { LearningModulesLibrary } from './components/LearningModulesLibrary';
 import { HeadsetInventory } from './components/HeadsetInventory';
 import { DashboardOverview } from './components/DashboardOverview';
+import { AnalyticsDashboard } from './components/AnalyticsDashboard';
+import { ReportsCenter } from './components/ReportsCenter';
+import { SettingsHub } from './components/SettingsHub';
 import { api } from './services/api';
 import { User, Student } from './types';
 
@@ -17,10 +20,12 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const [activeTab, setActiveTab] = useState<string>('dashboard'); // 'dashboard', 'students', 'modules', 'headsets', 'live', 'student-detail', 'monitoring'
+  const [activeTab, setActiveTab] = useState<string>('dashboard'); // 'dashboard', 'students', 'modules', 'headsets', 'live', 'student-detail', 'monitoring', 'analytics', 'reports', 'settings'
   const [isStartSessionOpen, setIsStartSessionOpen] = useState(false);
+  const [sessionContext, setSessionContext] = useState<{ student?: any; module?: any; headset?: any }>({});
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [selectedSession, setSelectedSession] = useState<any>(null);
+  const [selectedReportSessionId, setSelectedReportSessionId] = useState<string | null>(null);
 
   // Verify JWT Token on initial app load
   useEffect(() => {
@@ -65,7 +70,7 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#f8f9ff] flex flex-col items-center justify-center font-sans">
         <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-xs font-semibold text-on-surface-variant mt-3">Connecting to AdaptVR Engine...</p>
+        <p className="text-xs font-semibold text-[#3d4947] mt-3">Connecting to AdaptVR Engine...</p>
       </div>
     );
   }
@@ -79,7 +84,11 @@ export default function App() {
     return (
       <div className="min-h-screen bg-[#f8f9ff]">
         <StartSessionModal
-          onClose={() => setIsStartSessionOpen(false)}
+          initialContext={sessionContext}
+          onClose={() => {
+            setIsStartSessionOpen(false);
+            setSessionContext({});
+          }}
           onSessionStarted={(sessionData) => {
             setIsStartSessionOpen(false);
             setSelectedSession(sessionData);
@@ -106,7 +115,10 @@ export default function App() {
       <Sidebar
         activeTab={activeTab}
         setActiveTab={setActiveTab}
-        onStartSession={() => setIsStartSessionOpen(true)}
+        onStartSession={() => {
+          setSessionContext({});
+          setIsStartSessionOpen(true);
+        }}
       />
 
       {/* Main Container */}
@@ -116,7 +128,10 @@ export default function App() {
           activeTab={activeTab}
           currentUser={currentUser}
           onLogout={handleLogout}
-          onStartSession={() => setIsStartSessionOpen(true)}
+          onStartSession={() => {
+            setSessionContext({});
+            setIsStartSessionOpen(true);
+          }}
         />
 
         {/* Content Area */}
@@ -124,7 +139,10 @@ export default function App() {
           <div className="max-w-7xl mx-auto">
             {activeTab === 'dashboard' && (
               <DashboardOverview
-                onStartNewSession={() => setIsStartSessionOpen(true)}
+                onStartNewSession={() => {
+                  setSessionContext({});
+                  setIsStartSessionOpen(true);
+                }}
                 onNavigate={(tab) => setActiveTab(tab)}
               />
             )}
@@ -132,7 +150,10 @@ export default function App() {
             {activeTab === 'live' && (
               <LiveSessionsTable
                 onViewMonitoring={handleViewMonitoring}
-                onStartSession={() => setIsStartSessionOpen(true)}
+                onStartSession={() => {
+                  setSessionContext({});
+                  setIsStartSessionOpen(true);
+                }}
               />
             )}
 
@@ -140,6 +161,7 @@ export default function App() {
               <LiveSessionMonitoring
                 session={selectedSession}
                 onBack={() => setActiveTab('live')}
+                onEndSession={() => setActiveTab('live')}
               />
             )}
 
@@ -148,6 +170,7 @@ export default function App() {
                 onSelectStudent={handleSelectStudent}
                 onStartSessionForStudent={(student) => {
                   setSelectedStudent(student);
+                  setSessionContext({ student });
                   setIsStartSessionOpen(true);
                 }}
               />
@@ -157,13 +180,21 @@ export default function App() {
               <StudentProfileAnalytics
                 student={selectedStudent}
                 onBack={() => setActiveTab('students')}
-                onStartSession={() => setIsStartSessionOpen(true)}
+                onStartSession={() => {
+                  setSessionContext({ student: selectedStudent });
+                  setIsStartSessionOpen(true);
+                }}
+                onViewSessionReport={(sessionId) => {
+                  setSelectedReportSessionId(sessionId);
+                  setActiveTab('reports');
+                }}
               />
             )}
 
             {activeTab === 'modules' && (
               <LearningModulesLibrary
-                onStartModule={() => {
+                onStartModule={(module) => {
+                  setSessionContext({ module });
                   setIsStartSessionOpen(true);
                 }}
               />
@@ -171,11 +202,23 @@ export default function App() {
 
             {activeTab === 'headsets' && (
               <HeadsetInventory
-                onAssignDevice={() => {
+                onAssignDevice={(headset) => {
+                  setSessionContext({ headset });
                   setIsStartSessionOpen(true);
                 }}
               />
             )}
+
+            {activeTab === 'analytics' && <AnalyticsDashboard />}
+
+            {activeTab === 'reports' && (
+              <ReportsCenter
+                initialReportSessionId={selectedReportSessionId}
+                onClearInitialSessionId={() => setSelectedReportSessionId(null)}
+              />
+            )}
+
+            {activeTab === 'settings' && <SettingsHub currentUser={currentUser} />}
           </div>
         </main>
       </div>

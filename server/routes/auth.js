@@ -85,7 +85,12 @@ router.post('/register', async (req, res) => {
 
     res.status(201).json({
       token,
-      user: newTeacher
+      user: {
+        id: newTeacher.teacher_id,
+        full_name: newTeacher.full_name,
+        email: newTeacher.email,
+        created_at: newTeacher.created_at
+      }
     });
   } catch (err) {
     console.error('Auth register error:', err);

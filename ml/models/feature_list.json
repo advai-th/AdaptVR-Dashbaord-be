@@ -1,0 +1,7 @@
+[
+  "error_rate",
+  "avg_response_time",
+  "hint_requests",
+  "idle_time",
+  "engagement_score"
+]

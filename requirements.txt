@@ -1,0 +1,34 @@
+# ============================================================
+# AdaptVR ML Pipeline — Python Dependencies
+# ============================================================
+# Install with: pip install -r requirements.txt
+# Tested on Python 3.14
+
+# --- Core Data Science ---
+pandas>=3.0.0          # DataFrames and CSV handling
+numpy>=2.5.0           # Numerical operations
+scipy>=1.14.0          # Statistical utilities (used by imbalanced-learn)
+
+# --- Machine Learning ---
+scikit-learn>=1.9.0    # Preprocessing, splitting, metrics
+xgboost>=3.3.0         # The XGBoost classifier (our main model)
+imbalanced-learn>=0.13.0  # SMOTE for handling class imbalance
+
+# --- Explainability ---
+shap>=0.47.0           # SHAP values to explain model predictions
+
+# --- Visualization ---
+matplotlib>=3.10.0     # Base plotting library
+seaborn>=0.13.0        # Prettier statistical plots (confusion matrix)
+
+# --- Config / Utilities ---
+pyyaml>=6.0            # Reading feature-mapping config files (YAML)
+kaggle>=1.7.0          # Kaggle API to download datasets
+
+# --- ONNX Export (required by ml/retrain.py) ---
+skl2onnx>=1.17.0       # Converts scikit-learn / XGBoost models to ONNX format
+onnx>=1.16.0           # Core ONNX runtime used by skl2onnx during conversion
+
+# --- Database Access (required by ml/retrain.py) ---
+psycopg2-binary>=2.9.0 # PostgreSQL adapter — loads VR training data from the DB
+python-dotenv>=1.0.0   # Reads .env file for DB credentials

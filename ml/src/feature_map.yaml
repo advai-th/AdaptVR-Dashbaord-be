@@ -1,0 +1,178 @@
+# ============================================================
+# feature_map.yaml
+#
+# PURPOSE
+# -------
+# This file is the "Rosetta Stone" between raw dataset columns
+# and our canonical VR-style feature schema.
+#
+# CANONICAL SCHEMA (what every downstream module uses)
+# -----------------------------------------------
+#   error_rate         : proportion of wrong answers / actions
+#   avg_response_time  : mean time taken per task (seconds proxy)
+#   hint_requests      : number of help / hint requests
+#   idle_time          : pause time between actions (seconds proxy)
+#   engagement_score   : direct engagement / performance metric
+#
+# When you plug in real VR data, add a new dataset block below
+# following the same pattern.  The feature_engineering.py module
+# reads this file to know which raw column maps to which canonical
+# feature, and what derivation rule to apply if it's missing.
+# ============================================================
+
+datasets:
+  # ------------------------------------------------------------------
+  # DATASET 1: xAPI-Edu-Data (Kaggle: aljarah/xAPI-Edu-Data)
+  # An e-learning Intelligent Tutoring System dataset with LMS logs.
+  # ------------------------------------------------------------------
+  xapi_edu:
+    file: "data/raw/xAPI-Edu-Data.csv"
+
+    column_mappings:
+      # raw_column_name : canonical_feature_name
+      #
+      # raisedhands     — how many times the student raised their hand
+      #                   (proxy for active engagement / hint-seeking)
+      # VisITedResources— number of resources visited
+      #                   (proxy for task completion / engagement)
+      # AnnouncementsView — announcements viewed (attention/engagement)
+      # Discussion      — discussion posts (interaction frequency)
+      # Class           — original label (L/M/H) — we remap this below
+
+      raisedhands:        hint_requests
+      VisITedResources:   engagement_score
+      AnnouncementsView:  avg_response_time
+      Discussion:         idle_time
+      Class:              _raw_label
+
+    derived_features:
+      error_rate:
+        method: "complement_of_engagement"
+        source_column: engagement_score
+
+    label_mapping:
+      L: Low
+      M: Medium
+      H: High
+
+    drop_columns:
+      - gender
+      - NationalITy
+      - PlaceofBirth
+      - StageID
+      - GradeID
+      - SectionID
+      - Topic
+      - Semester
+      - Relation
+      - ParentAnsweringSurvey
+      - ParentschoolSatisfaction
+      - StudentAbsenceDays
+
+  # ------------------------------------------------------------------
+  # DATASET 2: UCI Student Performance (student-mat.csv)
+  # ------------------------------------------------------------------
+  uci_student:
+    file: "data/raw/student-mat.csv"
+
+    column_mappings:
+      failures:   error_rate
+      absences:   idle_time
+      studytime:  avg_response_time
+      freetime:   hint_requests
+      G3:         engagement_score
+
+    derived_features: {}
+
+    label_mapping:
+      _generate: true
+
+    drop_columns:
+      - school
+      - sex
+      - age
+      - address
+      - famsize
+      - Pstatus
+      - Medu
+      - Fedu
+      - Mjob
+      - Fjob
+      - reason
+      - guardian
+      - traveltime
+      - schoolsup
+      - famsup
+      - paid
+      - activities
+      - nursery
+      - higher
+      - internet
+      - romantic
+      - famrel
+      - goout
+      - Dalc
+      - Walc
+      - health
+      - G1
+      - G2
+
+  # ------------------------------------------------------------------
+  # DATASET 3: SuperEnglish/SimpleEnglish (Zenodo: 10.5281/zenodo.19926382)
+  # A 2026 between-subjects experiment (N=96) comparing a gamified Android
+  # quiz app (SuperEnglish) vs a plain version (SimpleEnglish).
+  # 632 per-session telemetry logs with REAL response time and hesitation.
+  #
+  # Why this dataset is valuable:
+  #   - response_time and hesitation are ACTUAL measured seconds — not proxies
+  #   - accuracy is a direct per-session correct/wrong ratio
+  #   - E_Avg (engagement scale score) gives a validated engagement label
+  #   - Very close to VR/gamified interactive learning context
+  # ------------------------------------------------------------------
+  super_simple_english:
+    file: "data/raw/SuperSimpleEnglish_Data.xlsx"
+
+    column_mappings:
+      # raw_column_name       : canonical_feature_name
+      #
+      # WrongAnswers / (RightAnswers + WrongAnswers) → error_rate (derived below)
+      # MeanAnswerTime (s)    → avg_response_time  ← REAL measured seconds!
+      # MeanHesitation (s)    → idle_time          ← REAL measured hesitation!
+      # E_Avg (from questionnaire) → engagement_score (validated scale)
+      # hint_requests: no direct column — filled with 0.0 (no hint mechanic in this app)
+      MeanAnswerTime (s):   avg_response_time
+      MeanHesitation (s):   idle_time
+
+    derived_features:
+      error_rate:
+        method: "wrong_over_total"
+        wrong_col: WrongAnswers
+        right_col: RightAnswers
+      engagement_score:
+        method: "from_questionnaire_sheet"
+        sheet: Usability_Engagement
+        col: E_Avg
+        merge_key: User
+      hint_requests:
+        method: "constant_zero"
+
+    label_mapping:
+      _generate: true
+
+    drop_columns:
+      - Group
+      - GameType
+      - DifficultyLevel
+      - Result
+
+  # ------------------------------------------------------------------
+  # PLACEHOLDER: Real VR Dataset (add when available)
+  # ------------------------------------------------------------------
+  vr_telemetry:
+    file: "data/raw/vr_session_data.csv"
+    column_mappings:
+      _placeholder: true
+    derived_features: {}
+    label_mapping:
+      _generate: true
+    drop_columns: []

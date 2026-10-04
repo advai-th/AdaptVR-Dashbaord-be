@@ -13,6 +13,22 @@ export const setPairingRegistry = (registry) => {
   pairingRegistry = registry;
 };
 
+// Flexible pairing code lookup (supports both '748-291' and '748291')
+export const getRegistryEntry = (code) => {
+  if (!code) return null;
+  const raw = String(code).trim().toUpperCase();
+  if (pairingRegistry.has(raw)) {
+    return { code: raw, entry: pairingRegistry.get(raw) };
+  }
+  const stripped = raw.replace(/-/g, '');
+  for (const [key, val] of pairingRegistry.entries()) {
+    if (key.replace(/-/g, '') === stripped) {
+      return { code: key, entry: val };
+    }
+  }
+  return null;
+};
+
 // Broadcast function (injected by server/index.js — same one used by sessions)
 let broadcastWsEvent = () => {};
 export const setDeviceWsBroadcaster = (fn) => { broadcastWsEvent = fn; };
@@ -86,8 +102,13 @@ router.post('/', async (req, res) => {
   let liveEntry = null;
   let normalisedCode = null;
   if (pairing_code) {
-    normalisedCode = String(pairing_code).trim().toUpperCase();
-    liveEntry = pairingRegistry.get(normalisedCode) || null;
+    const match = getRegistryEntry(pairing_code);
+    if (match) {
+      normalisedCode = match.code;
+      liveEntry = match.entry;
+    } else {
+      normalisedCode = String(pairing_code).trim().toUpperCase();
+    }
   }
 
   const cleanModel = (liveEntry?.deviceModel) || (device_model && String(device_model).trim()) || 'Meta Quest 2';
@@ -140,6 +161,15 @@ router.post('/', async (req, res) => {
         type: 'device.updated',
         device: { ...savedDevice, is_live: true },
       });
+
+      // Notify the headset in real-time that it is linked to the dashboard
+      if (liveEntry.ws && liveEntry.ws.readyState === 1) {
+        liveEntry.ws.send(JSON.stringify({
+          type: 'device.linked',
+          deviceLabel: savedDevice.device_label,
+          message: `Connected as "${savedDevice.device_label}". Waiting for instructor to start module...`
+        }));
+      }
     }
 
     console.log(`[Devices] Registered device "${trimmedLabel}" (Code: ${normalisedCode || 'none'})`);
@@ -242,14 +272,24 @@ router.post('/verify-code', (req, res) => {
     return res.status(400).json({ error: 'pairing_code is required' });
   }
 
-  const normalised = String(pairing_code).trim().toUpperCase();
-  const entry = pairingRegistry.get(normalised);
+  const match = getRegistryEntry(pairing_code);
 
-  if (!entry) {
+  if (!match) {
     return res.status(404).json({
       found: false,
       error: 'No active headset found with this pairing code. Make sure the Quest app is open and connected.',
     });
+  }
+
+  const { code: normalised, entry } = match;
+
+  // Notify headset in real-time that teacher verified their pairing code
+  if (entry.ws && entry.ws.readyState === 1) {
+    entry.ws.send(JSON.stringify({
+      type: 'device.linked',
+      deviceLabel: entry.deviceLabel || 'Teacher Dashboard',
+      message: 'Connected to dashboard! Waiting for instructor to launch module...'
+    }));
   }
 
   res.json({
@@ -284,14 +324,15 @@ router.post('/pair', async (req, res) => {
     });
   }
 
-  const normalised = String(pairing_code).trim().toUpperCase();
-  const entry = pairingRegistry.get(normalised);
+  const match = getRegistryEntry(pairing_code);
 
-  if (!entry) {
+  if (!match) {
     return res.status(404).json({
       error: 'No active headset found with this pairing code. Ensure the Quest app is running.',
     });
   }
+
+  const { code: normalised, entry } = match;
 
   try {
     // Resolve teacher_id — use provided value or fall back to first teacher in DB

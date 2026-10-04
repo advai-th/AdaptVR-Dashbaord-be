@@ -13,7 +13,10 @@ import sessionRoutes, { setWsBroadcaster } from './routes/sessions.js';
 import analyticsRoutes from './routes/analytics.js';
 import reportRoutes from './routes/reports.js';
 import deviceRoutes, { setPairingRegistry, setDeviceWsBroadcaster } from './routes/devices.js';
+import modelRoutes from './routes/model.js';
+import trainingRoutes from './routes/training.js';
 import { query } from '../db/index.js';
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -95,16 +98,17 @@ wss.on('connection', (ws, req) => {
 
       ws._pairingCode = code;
 
-      // Try to match this code to a persisted VR_DEVICE record (optional — the
-      // device can connect before it has been registered in the inventory)
+      // Try to match this code to a persisted VR_DEVICE record (by serial number or pairing code)
       let deviceId = null;
       try {
         const devRes = await query(
           `UPDATE VR_DEVICE
            SET pairing_code = $1, status = 'online',
-               battery_level = $2, firmware_version = COALESCE($3, firmware_version),
+               battery_level = COALESCE($2, battery_level), firmware_version = COALESCE($3, firmware_version),
                last_seen = CURRENT_TIMESTAMP
-           WHERE serial_number = $4
+           WHERE ($4::text IS NOT NULL AND serial_number = $4) 
+              OR pairing_code = $1 
+              OR REPLACE(pairing_code, '-', '') = REPLACE($1, '-', '')
            RETURNING device_id, device_label`,
           [
             code,
@@ -116,7 +120,7 @@ wss.on('connection', (ws, req) => {
 
         if (devRes.rows.length > 0) {
           deviceId = devRes.rows[0].device_id;
-          parsed.deviceLabel = parsed.deviceLabel || devRes.rows[0].device_label;
+          parsed.deviceLabel = devRes.rows[0].device_label || parsed.deviceLabel;
         }
       } catch (dbErr) {
         console.warn('[WebSocket] Could not update VR_DEVICE record:', dbErr.message);
@@ -134,13 +138,17 @@ wss.on('connection', (ws, req) => {
         connectedAt: new Date().toISOString(),
       });
 
-      console.log(`[Pairing] Headset registered with code: ${code} (active codes: ${pairingRegistry.size})`);
+      console.log(`[Pairing] Headset registered with code: ${code} (label: "${parsed.deviceLabel || 'none'}", active: ${pairingRegistry.size})`);
 
-      // Acknowledge back to headset
+      // Acknowledge back to headset, including whether it is already registered in inventory
       ws.send(JSON.stringify({
         type: 'device.register.ack',
         pairingCode: code,
-        message: 'Registered — display this code and wait for instructor.',
+        deviceLabel: parsed.deviceLabel,
+        isLinked: !!deviceId,
+        message: deviceId
+          ? `Linked as "${parsed.deviceLabel}". Waiting for instructor to start module...`
+          : 'Registered — display this code and wait for instructor.',
       }));
 
       // Notify dashboard that a new headset is available
@@ -175,11 +183,11 @@ wss.on('connection', (ws, req) => {
 
       console.log(`[Pairing] Headset disconnected, removed code: ${code} (active codes: ${pairingRegistry.size})`);
 
-      // Mark device offline in DB
+      // Mark device offline in DB (preserve pairing_code so reconnecting headset is recognized)
       if (entry?.deviceId) {
         query(
           `UPDATE VR_DEVICE
-           SET status = 'offline', pairing_code = NULL, last_seen = CURRENT_TIMESTAMP
+           SET status = 'offline', last_seen = CURRENT_TIMESTAMP
            WHERE device_id = $1`,
           [entry.deviceId]
         ).catch((e) => console.warn('[WebSocket] Could not mark device offline:', e.message));
@@ -222,11 +230,28 @@ app.use('/api/sessions', sessionRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/devices', deviceRoutes);
+app.use('/api/model', modelRoutes);
+app.use('/api/training', trainingRoutes);
+
 
 // Health Check Endpoint
 app.get('/api/health', async (req, res) => {
   try {
     const dbRes = await query('SELECT NOW()');
+
+    // Fetch active model version (non-blocking — fails gracefully)
+    let activeModel = 'v1 (baseline)';
+    let trainingExamples = 0;
+    try {
+      const modelRes = await query(
+        `SELECT version FROM MODEL_MANIFEST WHERE is_active = TRUE ORDER BY release_date DESC LIMIT 1`
+      );
+      if (modelRes.rows.length > 0) activeModel = modelRes.rows[0].version;
+
+      const trainingRes = await query(`SELECT COUNT(*)::INTEGER AS cnt FROM TRAINING_FEATURE`);
+      trainingExamples = trainingRes.rows[0].cnt;
+    } catch (_) { /* DB tables may not exist yet — swallow */ }
+
     res.json({
       status: 'online',
       service: 'AdaptVR Core Backend Service',
@@ -235,6 +260,8 @@ app.get('/api/health', async (req, res) => {
       active_ws_connections: clients.size,
       active_headsets: pairingRegistry.size,
       active_pairing_codes: Array.from(pairingRegistry.keys()),
+      active_model_version: activeModel,
+      training_examples_accumulated: trainingExamples,
     });
   } catch (err) {
     res.status(500).json({ status: 'error', database: 'disconnected', error: err.message });

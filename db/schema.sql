@@ -206,3 +206,69 @@ DROP TRIGGER IF EXISTS update_vr_device_updated_at ON VR_DEVICE;
 CREATE TRIGGER update_vr_device_updated_at
 BEFORE UPDATE ON VR_DEVICE
 FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+-- =============================================================================
+-- 10. TRAINING_FEATURE TABLE
+-- Labelled feature vectors uploaded from Quest devices at session end.
+-- Each row is one prediction window (12 features + derived label).
+-- Privacy: only aggregated numerical features are stored — no raw telemetry,
+-- no video, no audio, no student name.  learner_id is pseudonymous.
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS TRAINING_FEATURE (
+    feature_id          UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    session_id          VARCHAR(100) NOT NULL,          -- Quest-side session UUID
+    task_id             VARCHAR(100),
+    learner_id          VARCHAR(50),                    -- pseudonymous (e.g. "L001")
+    model_version_used  VARCHAR(20) NOT NULL DEFAULT 'v1',
+
+    -- The 12 canonical ML features
+    hesitation_time         DECIMAL(10,4) NOT NULL DEFAULT 0,
+    wrong_snap_count        INTEGER       NOT NULL DEFAULT 0,
+    correct_snap_count      INTEGER       NOT NULL DEFAULT 0,
+    hint_request_count      INTEGER       NOT NULL DEFAULT 0,
+    total_interactions      INTEGER       NOT NULL DEFAULT 0,
+    average_response_time   DECIMAL(10,4) NOT NULL DEFAULT 0,
+    idle_seconds            DECIMAL(10,4) NOT NULL DEFAULT 0,
+    head_direction_changes  INTEGER       NOT NULL DEFAULT 0,
+    backtracking_count      INTEGER       NOT NULL DEFAULT 0,
+    success_rate            DECIMAL(5,4)  NOT NULL DEFAULT 0,
+    task_duration           DECIMAL(10,4) NOT NULL DEFAULT 0,
+    consecutive_errors      INTEGER       NOT NULL DEFAULT 0,
+
+    -- Training label fields
+    derived_label      VARCHAR(10)   NOT NULL CHECK (derived_label IN ('Low', 'Medium', 'High')),
+    label_source       VARCHAR(20)   NOT NULL DEFAULT 'auto' CHECK (label_source IN ('auto', 'teacher')),
+    label_confidence   DECIMAL(4,2)  NOT NULL DEFAULT 0.70,
+
+    -- Metadata
+    window_start_time  DECIMAL(12,4),
+    window_end_time    DECIMAL(12,4),
+    uploaded_at        TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_training_feature_session_id ON TRAINING_FEATURE(session_id);
+CREATE INDEX IF NOT EXISTS idx_training_feature_derived_label ON TRAINING_FEATURE(derived_label);
+CREATE INDEX IF NOT EXISTS idx_training_feature_model_version ON TRAINING_FEATURE(model_version_used);
+CREATE INDEX IF NOT EXISTS idx_training_feature_uploaded_at ON TRAINING_FEATURE(uploaded_at);
+
+-- =============================================================================
+-- 11. MODEL_MANIFEST TABLE
+-- One row per published ONNX model version.
+-- The backend retrain.py script inserts a new row here after each successful
+-- retrain.  Quest devices poll GET /api/model/version and compare version
+-- strings to decide whether to download.
+-- =============================================================================
+CREATE TABLE IF NOT EXISTS MODEL_MANIFEST (
+    manifest_id         UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    version             VARCHAR(20) UNIQUE NOT NULL,    -- e.g. "v1", "v2", "v3"
+    release_date        TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    sha256              VARCHAR(64) NOT NULL,           -- hex digest of the ONNX binary
+    training_samples    INTEGER     NOT NULL DEFAULT 0,
+    validation_accuracy DECIMAL(5,4),
+    onnx_binary         BYTEA       NOT NULL,           -- the ONNX model file itself
+    is_active           BOOLEAN     NOT NULL DEFAULT TRUE,
+    notes               TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_model_manifest_version ON MODEL_MANIFEST(version);
+CREATE INDEX IF NOT EXISTS idx_model_manifest_is_active ON MODEL_MANIFEST(is_active);

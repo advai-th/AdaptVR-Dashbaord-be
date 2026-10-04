@@ -1,0 +1,94 @@
+erDiagram
+    TEACHER ||--o{ STUDENT : "manages"
+    TEACHER ||--o{ TEACHER_MODULE : "assigns"
+    LEARNING_MODULE ||--o{ TEACHER_MODULE : "assigned_to"
+    TEACHER ||--o{ SESSION : "supervises"
+    STUDENT ||--o{ SESSION : "performs"
+    LEARNING_MODULE ||--o{ SESSION : "contains"
+    SESSION ||--o{ INTERACTION_EVENT : "records"
+    SESSION ||--o{ ML_PREDICTION : "generates"
+    SESSION ||--o{ ADAPTATION_EVENT : "triggers"
+    ML_PREDICTION ||--o| ADAPTATION_EVENT : "informs"
+
+    TEACHER {
+        uuid teacher_id PK
+        varchar full_name
+        varchar email UK
+        text password_hash
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    STUDENT {
+        uuid student_id PK
+        uuid teacher_id FK
+        varchar full_name
+        integer age
+        varchar grade
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    LEARNING_MODULE {
+        uuid module_id PK
+        varchar module_name UK
+        varchar category
+        text description
+        varchar difficulty_level
+        varchar status
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    TEACHER_MODULE {
+        uuid teacher_module_id PK
+        uuid teacher_id FK
+        uuid module_id FK
+        timestamptz assigned_at
+    }
+
+    SESSION {
+        uuid session_id PK
+        uuid teacher_id FK
+        uuid student_id FK
+        uuid module_id FK
+        timestamptz start_time
+        timestamptz end_time
+        decimal final_score
+        varchar completion_status
+        timestamptz created_at
+        timestamptz updated_at
+    }
+
+    INTERACTION_EVENT {
+        uuid event_id PK
+        uuid session_id FK
+        timestamptz event_time
+        varchar event_type
+        varchar object_name
+        decimal response_time
+        integer error_count
+        jsonb interaction_value
+        text idempotency_key
+    }
+
+    ML_PREDICTION {
+        uuid prediction_id PK
+        uuid session_id FK
+        varchar predicted_cognitive_load
+        decimal confidence_score
+        timestamptz predicted_at
+        text idempotency_key
+    }
+
+    ADAPTATION_EVENT {
+        uuid adaptation_id PK
+        uuid session_id FK
+        uuid prediction_id FK
+        varchar adaptation_type
+        varchar previous_difficulty
+        varchar new_difficulty
+        text description
+        timestamptz adapted_at
+        text idempotency_key
+    }
